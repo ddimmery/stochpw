@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 import pytest
-from stochpw import PermutationWeighter
+from stochpw import LinearDiscriminator, MLPDiscriminator, PermutationWeighter
 from stochpw.core import NotFittedError
 from stochpw.diagnostics import effective_sample_size, standardized_mean_difference
 
@@ -17,14 +17,13 @@ class TestPermutationWeighter:
         """Test initialization with default parameters."""
         weighter = PermutationWeighter()
 
-        assert weighter.discriminator is None
+        assert isinstance(weighter.discriminator, LinearDiscriminator)
         assert weighter.optimizer is None
         assert weighter.num_epochs == 100
         assert weighter.batch_size == 256
         assert weighter.random_state is None
         assert weighter.params_ is None
         assert weighter.history_ is None
-        assert weighter.discriminator_fn_ is None
 
     def test_initialization_custom_params(self):
         """Test initialization with custom parameters."""
@@ -56,7 +55,6 @@ class TestPermutationWeighter:
 
         assert weighter.params_ is not None
         assert weighter.history_ is not None
-        assert weighter.discriminator_fn_ is not None
         assert "loss" in weighter.history_
         assert len(weighter.history_["loss"]) == 2
 
@@ -149,15 +147,12 @@ class TestPermutationWeighter:
         assert weighter.params_ is not None
 
     def test_custom_discriminator(self):
-        """Test with custom discriminator function."""
-        from stochpw.models import create_linear_discriminator
-
+        """Test with custom discriminator class."""
         X = np.random.randn(15, 2)
         A = np.random.choice([0.0, 1.0], size=15)
 
-        # Use custom discriminator factory
-        def custom_disc(d_a, d_x):
-            return create_linear_discriminator(d_a, d_x)
+        # Use custom discriminator instance
+        custom_disc = LinearDiscriminator()
 
         weighter = PermutationWeighter(
             discriminator=custom_disc, num_epochs=5, batch_size=10, random_state=42
@@ -325,7 +320,80 @@ class TestPermutationWeighter:
 
         weighter = PermutationWeighter(num_epochs=10, batch_size=10, random_state=42)
         weighter.fit(X, A)
+        weighter.predict(X, A)  # Just verify it runs
+
+    def test_mlp_discriminator_default(self):
+        """Test using MLP discriminator with default settings."""
+        X = np.random.randn(20, 2)
+        A = np.random.choice([0.0, 1.0], size=20)
+
+        mlp_disc = MLPDiscriminator()
+        weighter = PermutationWeighter(
+            discriminator=mlp_disc, num_epochs=10, batch_size=10, random_state=42
+        )
+        weighter.fit(X, A)
         weights = weighter.predict(X, A)
 
-        assert weights.shape == (15,)
+        assert weights.shape == (20,)
         assert jnp.all(weights > 0)
+
+    def test_mlp_discriminator_with_custom_hidden_dims(self):
+        """Test MLP discriminator with custom hidden dimensions."""
+        X = np.random.randn(20, 3)
+        A = np.random.choice([0.0, 1.0], size=20)
+
+        mlp_disc = MLPDiscriminator(hidden_dims=[32, 16])
+        weighter = PermutationWeighter(
+            discriminator=mlp_disc,
+            num_epochs=10,
+            batch_size=10,
+            random_state=42,
+        )
+        weighter.fit(X, A)
+        weights = weighter.predict(X, A)
+
+        assert weights.shape == (20,)
+
+    def test_mlp_discriminator_with_different_activations(self):
+        """Test MLP discriminator with different activation functions."""
+        X = np.random.randn(15, 2)
+        A = np.random.choice([0.0, 1.0], size=15)
+
+        for activation in ["relu", "tanh", "elu", "sigmoid"]:
+            mlp_disc = MLPDiscriminator(hidden_dims=[16], activation=activation)
+            weighter = PermutationWeighter(
+                discriminator=mlp_disc,
+                num_epochs=5,
+                batch_size=10,
+                random_state=42,
+            )
+            weighter.fit(X, A)
+            weights = weighter.predict(X, A)
+
+            assert weights.shape == (15,)
+            assert jnp.all(weights > 0)
+
+    def test_mlp_vs_linear_convergence(self):
+        """Test that both MLP and linear discriminators converge."""
+        X = np.random.randn(30, 3)
+        # Create imbalanced treatment based on X
+        A = (X[:, 0] + np.random.randn(30) * 0.3 > 0).astype(float)
+
+        # Linear discriminator
+        weighter_linear = PermutationWeighter(
+            discriminator=LinearDiscriminator(), num_epochs=20, batch_size=15, random_state=42
+        )
+        weighter_linear.fit(X, A)
+
+        # MLP discriminator
+        weighter_mlp = PermutationWeighter(
+            discriminator=MLPDiscriminator(hidden_dims=[32, 16]),
+            num_epochs=20,
+            batch_size=15,
+            random_state=42,
+        )
+        weighter_mlp.fit(X, A)
+
+        # Both should have decreasing loss
+        assert weighter_linear.history_["loss"][-1] < weighter_linear.history_["loss"][0]
+        assert weighter_mlp.history_["loss"][-1] < weighter_mlp.history_["loss"][0]

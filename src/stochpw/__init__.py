@@ -15,7 +15,7 @@ __version__ = "0.1.0"
 from .core import NotFittedError, PermutationWeighter
 from .data import TrainingBatch, TrainingState, TrainingStepResult, WeightedData
 from .diagnostics import effective_sample_size, standardized_mean_difference
-from .models import create_linear_discriminator
+from .models import BaseDiscriminator, LinearDiscriminator, MLPDiscriminator
 
 # Low-level components for composability
 from .training import create_training_batch, fit_discriminator, logistic_loss, train_step
@@ -35,8 +35,10 @@ __all__ = [
     "fit_discriminator",
     # Weight extraction
     "extract_weights",
-    # Models
-    "create_linear_discriminator",
+    # Discriminator models
+    "BaseDiscriminator",
+    "LinearDiscriminator",
+    "MLPDiscriminator",
     # Data structures
     "TrainingBatch",
     "WeightedData",

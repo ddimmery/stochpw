@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 import optax
 from stochpw.data import TrainingBatch, TrainingState
-from stochpw.models import create_linear_discriminator
+from stochpw.models import LinearDiscriminator
 from stochpw.training import create_training_batch, fit_discriminator, logistic_loss, train_step
 
 
@@ -181,7 +181,9 @@ class TestTrainStep:
     def test_train_step_execution(self):
         """Test that train_step executes without error."""
         d_a, d_x = 1, 2
-        init_fn, apply_fn = create_linear_discriminator(d_a, d_x)
+        discriminator = LinearDiscriminator()
+        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+        apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
         params = init_fn(key)
@@ -209,7 +211,9 @@ class TestTrainStep:
     def test_parameters_updated(self):
         """Test that parameters are updated after train_step."""
         d_a, d_x = 1, 2
-        init_fn, apply_fn = create_linear_discriminator(d_a, d_x)
+        discriminator = LinearDiscriminator()
+        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+        apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
         params = init_fn(key)
@@ -244,7 +248,9 @@ class TestFitDiscriminator:
         A = jnp.array([[0.0], [1.0], [0.0], [1.0]])
 
         d_a, d_x = A.shape[1], X.shape[1]
-        init_fn, apply_fn = create_linear_discriminator(d_a, d_x)
+        discriminator = LinearDiscriminator()
+        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+        apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
         params = init_fn(key)
@@ -273,7 +279,9 @@ class TestFitDiscriminator:
         A = jax.random.bernoulli(jax.random.PRNGKey(1), 0.5, (100,)).astype(float).reshape(-1, 1)
 
         d_a, d_x = A.shape[1], X.shape[1]
-        init_fn, apply_fn = create_linear_discriminator(d_a, d_x)
+        discriminator = LinearDiscriminator()
+        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+        apply_fn = discriminator.apply
 
         params = init_fn(jax.random.PRNGKey(2))
         optimizer = optax.adam(1e-2)
@@ -298,7 +306,9 @@ class TestFitDiscriminator:
         A = jnp.array([[0.0], [1.0]])
 
         d_a, d_x = A.shape[1], X.shape[1]
-        init_fn, apply_fn = create_linear_discriminator(d_a, d_x)
+        discriminator = LinearDiscriminator()
+        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+        apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
 

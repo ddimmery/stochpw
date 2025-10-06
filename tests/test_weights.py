@@ -2,7 +2,7 @@
 
 import jax
 import jax.numpy as jnp
-from stochpw.models import create_linear_discriminator
+from stochpw.models import LinearDiscriminator
 from stochpw.weights import extract_weights
 
 
@@ -12,7 +12,9 @@ class TestExtractWeights:
     def test_weight_extraction(self):
         """Test basic weight extraction."""
         d_a, d_x = 1, 2
-        init_fn, apply_fn = create_linear_discriminator(d_a, d_x)
+        discriminator = LinearDiscriminator()
+        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+        apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
         params = init_fn(key)
@@ -153,7 +155,9 @@ class TestExtractWeights:
     def test_gradient_flow(self):
         """Test that gradients flow through weight extraction."""
         d_a, d_x = 1, 1
-        init_fn, apply_fn = create_linear_discriminator(d_a, d_x)
+        discriminator = LinearDiscriminator()
+        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+        apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
         params = init_fn(key)
@@ -176,7 +180,9 @@ class TestExtractWeights:
     def test_multivariate_treatment(self):
         """Test weight extraction with multivariate treatment."""
         d_a, d_x = 2, 3
-        init_fn, apply_fn = create_linear_discriminator(d_a, d_x)
+        discriminator = LinearDiscriminator()
+        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+        apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
         params = init_fn(key)
@@ -193,7 +199,9 @@ class TestExtractWeights:
     def test_jit_compilation(self):
         """Test that extract_weights can be JIT compiled."""
         d_a, d_x = 1, 2
-        init_fn, apply_fn = create_linear_discriminator(d_a, d_x)
+        discriminator = LinearDiscriminator()
+        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+        apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
         params = init_fn(key)
