@@ -94,7 +94,7 @@ Arbour, D., Dimmery, D., & Sondhi, A. (2021). **Permutation Weighting**. In *Pro
 
 ## License
 
-MIT License - see LICENSE file for details.
+Apache License - see LICENSE file for details.
 
 ## Contributing
 
