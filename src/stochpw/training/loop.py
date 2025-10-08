@@ -1,4 +1,4 @@
-"""Training utilities for permutation weighting discriminators."""
+"""Training loop for permutation weighting discriminators."""
 
 from typing import Callable
 
@@ -7,92 +7,19 @@ import jax.numpy as jnp
 import optax
 from jax import Array
 
-from .data import TrainingBatch, TrainingState, TrainingStepResult
-from .utils import permute_treatment
-
-
-def create_training_batch(
-    X: Array, A: Array, batch_indices: Array, rng_key: Array
-) -> TrainingBatch:
-    """
-    Create a training batch with observed and permuted pairs.
-
-    Includes first-order interactions (A*X) which are critical for the
-    discriminator to learn the association between treatment and covariates.
-
-    Parameters
-    ----------
-    X : jax.Array, shape (n, d_x)
-        Covariates
-    A : jax.Array, shape (n, d_a)
-        Treatments
-    batch_indices : jax.Array, shape (batch_size,)
-        Indices for this batch
-    rng_key : jax.random.PRNGKey
-        PRNG key for permutation
-
-    Returns
-    -------
-    TrainingBatch
-        Batch with concatenated observed and permuted data, including interactions
-    """
-    # Sample observed batch
-    X_obs = X[batch_indices]
-    A_obs = A[batch_indices]
-
-    # Create permuted batch by shuffling treatments WITHIN the batch
-    # This creates the product distribution P(A)P(X) within the batch
-    batch_size = len(batch_indices)
-    X_perm = X_obs  # Same covariates (not shuffled)
-    A_perm = permute_treatment(A_obs, rng_key)  # Shuffle treatments within batch
-
-    # Compute interactions: outer product A ⊗ X
-    # For each sample, creates all A_i * X_j combinations
-    interactions_obs = jnp.einsum("bi,bj->bij", A_obs, X_obs).reshape(batch_size, -1)
-    interactions_perm = jnp.einsum("bi,bj->bij", A_perm, X_perm).reshape(batch_size, -1)
-
-    # Concatenate and label
-    X_batch = jnp.concatenate([X_obs, X_perm])
-    A_batch = jnp.concatenate([A_obs, A_perm])
-    interactions_batch = jnp.concatenate([interactions_obs, interactions_perm])
-    C_batch = jnp.concatenate(
-        [
-            jnp.zeros(batch_size),  # Observed: C=0
-            jnp.ones(batch_size),  # Permuted: C=1
-        ]
-    )
-
-    return TrainingBatch(X=X_batch, A=A_batch, C=C_batch, AX=interactions_batch)
-
-
-@jax.jit
-def logistic_loss(logits: Array, labels: Array) -> Array:
-    """
-    Binary cross-entropy loss for discriminator.
-
-    Uses numerically stable log-sigmoid implementation.
-
-    Parameters
-    ----------
-    logits : jax.Array, shape (batch_size,)
-        Raw discriminator outputs
-    labels : jax.Array, shape (batch_size,)
-        Binary labels (0 or 1)
-
-    Returns
-    -------
-    loss : float
-        Scalar loss value
-    """
-    # Use optax's stable implementation
-    return optax.sigmoid_binary_cross_entropy(logits, labels).mean()
+from ..data import TrainingState, TrainingStepResult
+from .batch import create_training_batch
+from .losses import logistic_loss
 
 
 def train_step(
     state: TrainingState,
-    batch: TrainingBatch,
+    batch,
     discriminator_fn: Callable,
     optimizer: optax.GradientTransformation,
+    loss_fn_type: Callable[[Array, Array], Array] = logistic_loss,
+    regularization_fn: Callable[[dict], Array] | None = None,
+    regularization_strength: float = 0.0,
 ) -> TrainingStepResult:
     """
     Single training step (JIT-compiled).
@@ -109,6 +36,12 @@ def train_step(
         Discriminator function (params, a, x, ax) -> logits
     optimizer : optax.GradientTransformation
         Optax optimizer
+    loss_fn_type : Callable, default=logistic_loss
+        Loss function (logits, labels) -> loss
+    regularization_fn : Callable, optional
+        Regularization function on parameters (params) -> penalty
+    regularization_strength : float, default=0.0
+        Strength of regularization penalty
 
     Returns
     -------
@@ -118,7 +51,13 @@ def train_step(
 
     def loss_fn(params):
         logits = discriminator_fn(params, batch.A, batch.X, batch.AX)
-        return logistic_loss(logits, batch.C)
+        loss = loss_fn_type(logits, batch.C)
+
+        # Add regularization if specified
+        if regularization_fn is not None and regularization_strength > 0:
+            loss = loss + regularization_strength * regularization_fn(params)
+
+        return loss
 
     loss, grads = jax.value_and_grad(loss_fn)(state.params)
     updates, opt_state = optimizer.update(grads, state.opt_state, state.params)
@@ -144,6 +83,12 @@ def fit_discriminator(
     num_epochs: int,
     batch_size: int,
     rng_key: Array,
+    loss_fn: Callable[[Array, Array], Array] = logistic_loss,
+    regularization_fn: Callable[[dict], Array] | None = None,
+    regularization_strength: float = 0.0,
+    early_stopping: bool = False,
+    patience: int = 10,
+    min_delta: float = 1e-4,
 ) -> tuple[dict, dict]:
     """
     Complete training loop for discriminator.
@@ -166,6 +111,18 @@ def fit_discriminator(
         Mini-batch size
     rng_key : jax.random.PRNGKey
         Random key for reproducibility
+    loss_fn : Callable, default=logistic_loss
+        Loss function (logits, labels) -> loss
+    regularization_fn : Callable, optional
+        Regularization function on parameters (params) -> penalty
+    regularization_strength : float, default=0.0
+        Strength of regularization penalty
+    early_stopping : bool, default=False
+        Whether to use early stopping based on validation loss
+    patience : int, default=10
+        Number of epochs to wait for improvement before stopping
+    min_delta : float, default=1e-4
+        Minimum change in loss to qualify as improvement
 
     Returns
     -------
@@ -185,6 +142,11 @@ def fit_discriminator(
         epoch=0,
         history={"loss": []},
     )
+
+    # Early stopping state
+    best_loss = float("inf")
+    best_params = init_params
+    epochs_without_improvement = 0
 
     for epoch in range(num_epochs):
         # Split RNG key for this epoch
@@ -211,7 +173,15 @@ def fit_discriminator(
             batch = create_training_batch(X_shuffled, A_shuffled, batch_indices, batch_key)
 
             # Training step
-            result = train_step(state, batch, discriminator_fn, optimizer)
+            result = train_step(
+                state,
+                batch,
+                discriminator_fn,
+                optimizer,
+                loss_fn_type=loss_fn,
+                regularization_fn=regularization_fn,
+                regularization_strength=regularization_strength,
+            )
             state = result.state
             epoch_losses.append(float(result.loss))
 
@@ -219,5 +189,19 @@ def fit_discriminator(
         mean_epoch_loss = jnp.mean(jnp.array(epoch_losses))
         state.history["loss"].append(float(mean_epoch_loss))
         state.epoch = epoch + 1
+
+        # Early stopping logic
+        if early_stopping:
+            if mean_epoch_loss < best_loss - min_delta:
+                best_loss = mean_epoch_loss
+                best_params = state.params
+                epochs_without_improvement = 0
+            else:
+                epochs_without_improvement += 1
+
+            if epochs_without_improvement >= patience:
+                # Restore best parameters
+                state.params = best_params
+                break
 
     return state.params, state.history

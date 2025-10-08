@@ -18,7 +18,15 @@ from .diagnostics import effective_sample_size, standardized_mean_difference
 from .models import BaseDiscriminator, LinearDiscriminator, MLPDiscriminator
 
 # Low-level components for composability
-from .training import create_training_batch, fit_discriminator, logistic_loss, train_step
+from .training import (
+    brier_loss,
+    create_training_batch,
+    exponential_loss,
+    fit_discriminator,
+    l2_param_penalty,
+    logistic_loss,
+    train_step,
+)
 from .utils import permute_treatment, validate_inputs
 from .weights import extract_weights
 
@@ -31,6 +39,9 @@ __all__ = [
     # Training utilities (for integration)
     "create_training_batch",
     "logistic_loss",
+    "exponential_loss",
+    "brier_loss",
+    "l2_param_penalty",
     "train_step",
     "fit_discriminator",
     # Weight extraction

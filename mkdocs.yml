@@ -1,6 +1,6 @@
 site_name: stochpw
-site_url: https://github.com/username/stochpw
-repo_url: "https://github.com/username/stochpw"
+site_url: https://github.com/ddimmery/stochpw
+repo_url: "https://github.com/ddimmery/stochpw"
 repo_name: "stochpw"
 nav:
   - Home: index.md
@@ -65,10 +65,8 @@ plugins:
 - mkdocstrings:
     handlers:
       python:
-        setup_commands:
-          - import sys
-          - sys.path.append("src")
-        import:
+        paths: [src]
+        inventories:
         - https://docs.python.org/3/objects.inv
         - https://numpy.org/doc/stable/objects.inv
         options:
@@ -76,7 +74,6 @@ plugins:
           docstring_options:
             ignore_init_summary: yes
           merge_init_into_class: yes
-        rendering:
           show_submodules: no
 watch:
   - src/stochpw

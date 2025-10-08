@@ -1,6 +1,6 @@
 """Main API for permutation weighting."""
 
-from typing import Optional
+from typing import Callable, Optional
 
 import jax
 import jax.numpy as jnp
@@ -9,7 +9,7 @@ import optax
 from jax import Array
 
 from .models import BaseDiscriminator, LinearDiscriminator
-from .training import fit_discriminator
+from .training import fit_discriminator, logistic_loss
 from .utils import validate_inputs
 from .weights import extract_weights
 
@@ -42,6 +42,20 @@ class PermutationWeighter:
         Mini-batch size for training
     random_state : int, optional
         Random seed for reproducibility
+    loss_fn : Callable, default=logistic_loss
+        Loss function (logits, labels) -> loss. Can be logistic_loss,
+        exponential_loss, or brier_loss.
+    regularization_fn : Callable, optional
+        Regularization function on parameters (params) -> penalty.
+        Use l2_param_penalty for L2 regularization.
+    regularization_strength : float, default=0.0
+        Strength of regularization penalty
+    early_stopping : bool, default=False
+        Whether to use early stopping based on training loss
+    patience : int, default=10
+        Number of epochs to wait for improvement before early stopping
+    min_delta : float, default=1e-4
+        Minimum change in loss to qualify as improvement for early stopping
 
     Attributes
     ----------
@@ -78,12 +92,24 @@ class PermutationWeighter:
         num_epochs: int = 100,
         batch_size: int = 256,
         random_state: Optional[int] = None,
+        loss_fn: Callable[[Array, Array], Array] = logistic_loss,
+        regularization_fn: Optional[Callable[[dict], Array]] = None,
+        regularization_strength: float = 0.0,
+        early_stopping: bool = False,
+        patience: int = 10,
+        min_delta: float = 1e-4,
     ):
         self.discriminator = discriminator if discriminator is not None else LinearDiscriminator()
         self.optimizer = optimizer
         self.num_epochs = num_epochs
         self.batch_size = batch_size
         self.random_state = random_state
+        self.loss_fn = loss_fn
+        self.regularization_fn = regularization_fn
+        self.regularization_strength = regularization_strength
+        self.early_stopping = early_stopping
+        self.patience = patience
+        self.min_delta = min_delta
 
         # Fitted attributes (set by fit())
         self.params_ = None
@@ -139,6 +165,12 @@ class PermutationWeighter:
             num_epochs=self.num_epochs,
             batch_size=self.batch_size,
             rng_key=train_key,
+            loss_fn=self.loss_fn,
+            regularization_fn=self.regularization_fn,
+            regularization_strength=self.regularization_strength,
+            early_stopping=self.early_stopping,
+            patience=self.patience,
+            min_delta=self.min_delta,
         )
 
         return self

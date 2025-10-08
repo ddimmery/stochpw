@@ -8,12 +8,12 @@
 ## Installation
 
 ```bash
-pip install stochpw  # Coming soon
+pip install stochpw
 ```
 
 For development:
 ```bash
-git clone https://github.com/yourusername/stochpw.git
+git clone https://github.com/ddimmery/stochpw.git
 cd stochpw
 poetry install
 ```
@@ -39,7 +39,8 @@ weighter.fit(X, A)
 # Predict importance weights
 weights = weighter.predict(X, A)
 
-# Use weights for causal inference (in external package)
+# Use weights for downstream task
+# (tools for causal estimation not provided)
 # ate = weighted_estimator(Y, A, weights)
 ```
 
@@ -57,7 +58,7 @@ Permutation weighting estimates density ratios by:
    ```
    where η(a, x) = p(C=1 | a, x)
 
-3. **Using weights** for inverse probability weighting in causal effect estimation
+3. **Using weights** for balancing weights in causal effect estimation
 
 ## Composable Design
 
@@ -65,15 +66,17 @@ The package exposes low-level components for integration into larger models:
 
 ```python
 from stochpw import (
+    BaseDiscriminator,
+    LinearDiscriminator,
+    MLPDiscriminator,
     create_training_batch,
     logistic_loss,
     extract_weights,
-    create_linear_discriminator
 )
 
 # Use in your custom architecture (e.g., DragonNet)
 batch = create_training_batch(X, A, batch_indices, rng_key)
-logits = my_discriminator(params, batch.A, batch.X)
+logits = my_discriminator(params, batch.A, batch.X, batch.AX)
 loss = logistic_loss(logits, batch.C)
 ```
 
@@ -87,7 +90,7 @@ loss = logistic_loss(logits, batch.C)
 
 ## References
 
-Arbour, D., Dimmery, D., & Sondhi, A. (2021). **Permutation Weighting**. *International Conference on Machine Learning (ICML)*.
+Arbour, D., Dimmery, D., & Sondhi, A. (2021). **Permutation Weighting**. In *Proceedings of the 38th International Conference on Machine Learning*, PMLR 139:331-341.
 
 ## License
 
@@ -95,17 +98,25 @@ MIT License - see LICENSE file for details.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Citation
 
-If you use this package, please cite:
+If you use this package, please cite [the original paper](https://proceedings.mlr.press/v139/arbour21a.html):
 
 ```bibtex
-@software{stochpw2024,
-  title = {stochpw: Permutation Weighting for Causal Inference},
-  author = {Your Name},
-  year = {2024},
-  url = {https://github.com/yourusername/stochpw}
+@InProceedings{arbour21permutation,
+  title = {Permutation Weighting},
+  author = {Arbour, David and Dimmery, Drew and Sondhi, Arjun},
+  booktitle = {Proceedings of the 38th International Conference on Machine Learning},
+  pages = {331--341},
+  year = {2021},
+  editor = {Meila, Marina and Zhang, Tong},
+  volume = {139},
+  series = {Proceedings of Machine Learning Research},
+  month = {18--24 Jul},
+  publisher = {PMLR},
+  pdf = {http://proceedings.mlr.press/v139/arbour21a/arbour21a.pdf},
+  url = {https://proceedings.mlr.press/v139/arbour21a.html}
 }
 ```
