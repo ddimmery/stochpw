@@ -14,7 +14,15 @@ __version__ = "0.2.0"
 # Main API
 from .core import NotFittedError, PermutationWeighter
 from .data import TrainingBatch, TrainingState, TrainingStepResult, WeightedData
-from .diagnostics import effective_sample_size, standardized_mean_difference
+from .diagnostics import (
+    balance_report,
+    calibration_curve,
+    effective_sample_size,
+    roc_curve,
+    standardized_mean_difference,
+    standardized_mean_difference_se,
+    weight_statistics,
+)
 from .models import BaseDiscriminator, LinearDiscriminator, MLPDiscriminator
 
 # Low-level components for composability
@@ -58,6 +66,11 @@ __all__ = [
     # Diagnostics
     "effective_sample_size",
     "standardized_mean_difference",
+    "standardized_mean_difference_se",
+    "weight_statistics",
+    "balance_report",
+    "calibration_curve",
+    "roc_curve",
     # Utilities
     "validate_inputs",
     "permute_treatment",

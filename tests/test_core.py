@@ -27,9 +27,7 @@ class TestPermutationWeighter:
 
     def test_initialization_custom_params(self):
         """Test initialization with custom parameters."""
-        weighter = PermutationWeighter(
-            num_epochs=50, batch_size=128, random_state=42
-        )
+        weighter = PermutationWeighter(num_epochs=50, batch_size=128, random_state=42)
 
         assert weighter.num_epochs == 50
         assert weighter.batch_size == 128
@@ -375,9 +373,10 @@ class TestPermutationWeighter:
 
     def test_mlp_vs_linear_convergence(self):
         """Test that both MLP and linear discriminators converge."""
-        X = np.random.randn(30, 3)
+        np.random.seed(123)  # Fix seed for reproducibility
+        X = np.random.randn(100, 3)  # Larger dataset for more reliable convergence
         # Create imbalanced treatment based on X
-        A = (X[:, 0] + np.random.randn(30) * 0.3 > 0).astype(float)
+        A = (X[:, 0] + np.random.randn(100) * 0.3 > 0).astype(float)
 
         # Linear discriminator
         weighter_linear = PermutationWeighter(

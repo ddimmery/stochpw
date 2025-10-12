@@ -65,7 +65,7 @@ class MLPDiscriminator(BaseDiscriminator):
     >>> discriminator = MLPDiscriminator()
     >>>
     >>> # Custom: 3-layer MLP with tanh
-    >>> discriminator = MLPDiscriminator(hidden_dims=[128, 64, 32], activation='tanh')
+    >>> discriminator = MLPDiscriminator(hidden_dims=[128, 64, 32], activation="tanh")
     >>>
     >>> params = discriminator.init_params(jax.random.PRNGKey(0), d_a=1, d_x=3)
     """

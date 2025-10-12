@@ -79,3 +79,58 @@ def standardized_mean_difference(X: Array, A: Array, weights: Array) -> Array:
         smd = cov / (std_A * std_X + 1e-10)
 
     return smd
+
+
+def standardized_mean_difference_se(X: Array, A: Array, weights: Array) -> Array:
+    """
+    Compute standard errors for standardized mean differences.
+
+    Uses the bootstrap-style approximation for weighted SMD standard errors.
+
+    Parameters
+    ----------
+    X : jax.Array, shape (n_samples, n_features)
+        Covariates
+    A : jax.Array, shape (n_samples, 1) or (n_samples,)
+        Treatments
+    weights : jax.Array, shape (n_samples,)
+        Sample weights
+
+    Returns
+    -------
+    se : jax.Array, shape (n_features,)
+        Standard error for each covariate's SMD
+    """
+    # Ensure A is 1D
+    if A.ndim == 2:
+        A = A.squeeze()
+
+    # Check if A is binary
+    unique_a = jnp.unique(A)
+    is_binary = len(unique_a) == 2
+
+    if is_binary:
+        # Binary treatment: bootstrap-style SE
+        a0, a1 = unique_a[0], unique_a[1]
+        mask_0 = A == a0
+        mask_1 = A == a1
+
+        # Effective sample sizes
+        weights_0 = weights * mask_0
+        weights_1 = weights * mask_1
+        ess_0 = jnp.sum(weights_0) ** 2 / jnp.sum(weights_0**2)
+        ess_1 = jnp.sum(weights_1) ** 2 / jnp.sum(weights_1**2)
+
+        # Approximate SE using ESS
+        # SE(SMD) ≈ sqrt(1/n_0 + 1/n_1 + SMD²/(2*(n_0 + n_1)))
+        # Use ESS instead of n
+        smd = standardized_mean_difference(X, A, weights)
+        se = jnp.sqrt(1.0 / ess_0 + 1.0 / ess_1 + smd**2 / (2.0 * (ess_0 + ess_1)))
+
+    else:
+        # Continuous treatment: approximate SE for correlation
+        n_eff = jnp.sum(weights) ** 2 / jnp.sum(weights**2)
+        # SE(correlation) ≈ 1/sqrt(n)
+        se = jnp.ones(X.shape[1]) / jnp.sqrt(n_eff)
+
+    return se

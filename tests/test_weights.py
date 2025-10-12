@@ -13,7 +13,10 @@ class TestExtractWeights:
         """Test basic weight extraction."""
         d_a, d_x = 1, 2
         discriminator = LinearDiscriminator()
-        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+
+        def init_fn(key):
+            return discriminator.init_params(key, d_a, d_x)
+
         apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
@@ -30,6 +33,7 @@ class TestExtractWeights:
 
     def test_weight_formula(self):
         """Test that weight formula w = η/(1-η) is applied correctly."""
+
         # Create discriminator with known parameters
         def simple_apply(params, a, x, ax):
             # Return fixed logits
@@ -48,6 +52,7 @@ class TestExtractWeights:
 
     def test_high_eta_high_weight(self):
         """Test that high η (permuted-looking) gives high weight."""
+
         def simple_apply(params, a, x, ax):
             return params["logit"] * jnp.ones(a.shape[0])
 
@@ -65,6 +70,7 @@ class TestExtractWeights:
 
     def test_low_eta_low_weight(self):
         """Test that low η (observed-looking) gives low weight."""
+
         def simple_apply(params, a, x, ax):
             return params["logit"] * jnp.ones(a.shape[0])
 
@@ -82,6 +88,7 @@ class TestExtractWeights:
 
     def test_numerical_stability_high_eta(self):
         """Test numerical stability when η close to 1."""
+
         def simple_apply(params, a, x, ax):
             return params["logit"] * jnp.ones(a.shape[0])
 
@@ -100,6 +107,7 @@ class TestExtractWeights:
 
     def test_numerical_stability_low_eta(self):
         """Test numerical stability when η close to 0."""
+
         def simple_apply(params, a, x, ax):
             return params["logit"] * jnp.ones(a.shape[0])
 
@@ -118,6 +126,7 @@ class TestExtractWeights:
 
     def test_batch_processing(self):
         """Test that weights are computed independently for each sample."""
+
         def simple_apply(params, a, x, ax):
             # Different logits for each sample
             return jnp.array([0.0, 2.0, -2.0])
@@ -137,6 +146,7 @@ class TestExtractWeights:
 
     def test_custom_eps(self):
         """Test that custom epsilon value works."""
+
         def simple_apply(params, a, x, ax):
             return jnp.array([100.0])  # Very high -> η ≈ 1
 
@@ -156,7 +166,10 @@ class TestExtractWeights:
         """Test that gradients flow through weight extraction."""
         d_a, d_x = 1, 1
         discriminator = LinearDiscriminator()
-        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+
+        def init_fn(key):
+            return discriminator.init_params(key, d_a, d_x)
+
         apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
@@ -181,7 +194,10 @@ class TestExtractWeights:
         """Test weight extraction with multivariate treatment."""
         d_a, d_x = 2, 3
         discriminator = LinearDiscriminator()
-        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+
+        def init_fn(key):
+            return discriminator.init_params(key, d_a, d_x)
+
         apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)
@@ -200,7 +216,10 @@ class TestExtractWeights:
         """Test that extract_weights can be JIT compiled."""
         d_a, d_x = 1, 2
         discriminator = LinearDiscriminator()
-        init_fn = lambda key: discriminator.init_params(key, d_a, d_x)
+
+        def init_fn(key):
+            return discriminator.init_params(key, d_a, d_x)
+
         apply_fn = discriminator.apply
 
         key = jax.random.PRNGKey(42)

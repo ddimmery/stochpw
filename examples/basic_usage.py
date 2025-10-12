@@ -4,6 +4,35 @@ import jax
 import jax.numpy as jnp
 from stochpw import PermutationWeighter, effective_sample_size, standardized_mean_difference
 
+key_code = """import jax
+import jax.numpy as jnp
+from stochpw import PermutationWeighter, effective_sample_size, standardized_mean_difference
+
+# Generate synthetic observational data with confounding
+key = jax.random.PRNGKey(420)
+n = 250
+
+X_key, A_key = jax.random.split(key)
+X = jax.random.normal(X_key, (n, 5))  # 5 covariates
+
+# Treatment depends on covariates (confounding)
+propensity = jax.nn.sigmoid(0.5 * X[:, 0] - 0.3 * X[:, 1] + 0.2)
+A = jax.random.bernoulli(A_key, propensity, (n,)).astype(jnp.float32).reshape(-1, 1)
+
+# Fit permutation weighter
+weighter = PermutationWeighter(num_epochs=1000, batch_size=250, random_state=42)
+weighter.fit(X, A)
+weights = weighter.predict(X, A)
+
+# Assess balance
+ess = effective_sample_size(weights)
+smd_unweighted = standardized_mean_difference(X, A, jnp.ones_like(weights))
+smd_weighted = standardized_mean_difference(X, A, weights)
+
+# Training history
+loss_history = weighter.history_["loss"]
+"""
+
 
 def main():
     # Generate synthetic observational data with confounding
@@ -26,7 +55,7 @@ def main():
 
     # Fit permutation weighter
     print("\nFitting permutation weighter...")
-    weighter = PermutationWeighter(num_epochs=10000, batch_size=250, random_state=42)
+    weighter = PermutationWeighter(num_epochs=1000, batch_size=250, random_state=42)
 
     weighter.fit(X, A)
     weights = weighter.predict(X, A)

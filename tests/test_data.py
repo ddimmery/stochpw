@@ -64,9 +64,7 @@ class TestWeightedData:
 
     def test_immutability(self):
         """Test that WeightedData is immutable."""
-        data = WeightedData(
-            X=jnp.array([[1.0]]), A=jnp.array([[0.0]]), weights=jnp.array([1.0])
-        )
+        data = WeightedData(X=jnp.array([[1.0]]), A=jnp.array([[0.0]]), weights=jnp.array([1.0]))
 
         with pytest.raises((AttributeError, ValueError, TypeError)):
             data.weights = jnp.array([2.0])

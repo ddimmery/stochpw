@@ -4,6 +4,50 @@ import jax
 import jax.numpy as jnp
 from stochpw import MLPDiscriminator, PermutationWeighter, standardized_mean_difference
 
+key_code = """import jax
+import jax.numpy as jnp
+from stochpw import MLPDiscriminator, PermutationWeighter, standardized_mean_difference
+
+# Generate synthetic data with complex confounding
+key = jax.random.PRNGKey(123)
+n = 500
+
+X_key, A_key = jax.random.split(key)
+X = jax.random.normal(X_key, (n, 5))
+
+# Complex nonlinear propensity function
+propensity = jax.nn.sigmoid(
+    0.5 * X[:, 0]**2  # Nonlinear effect
+    - 0.3 * X[:, 1] * X[:, 2]  # Interaction
+    + jnp.sin(X[:, 3])  # Nonlinearity
+    + 0.1
+)
+A = jax.random.bernoulli(A_key, propensity, (n,)).astype(jnp.float32).reshape(-1, 1)
+
+# Compare Linear vs MLP discriminators
+configs = [
+    ("Linear", None),
+    ("MLP (default)", MLPDiscriminator()),
+    ("MLP (small)", MLPDiscriminator(hidden_dims=[32])),
+    ("MLP (large)", MLPDiscriminator(hidden_dims=[128, 64, 32])),
+    ("MLP (tanh)", MLPDiscriminator(activation="tanh")),
+]
+
+for name, discriminator in configs:
+    weighter = PermutationWeighter(
+        discriminator=discriminator,
+        num_epochs=500,
+        batch_size=500,
+        random_state=42,
+    )
+    weighter.fit(X, A)
+    weights = weighter.predict(X, A)
+
+    # Calculate balance improvement
+    smd_unweighted = standardized_mean_difference(X, A, jnp.ones_like(weights))
+    smd_weighted = standardized_mean_difference(X, A, weights)
+"""
+
 
 def main():
     # Generate synthetic data with complex confounding
@@ -16,7 +60,7 @@ def main():
 
     # Complex nonlinear propensity function
     propensity = jax.nn.sigmoid(
-        0.5 * X[:, 0]**2  # Nonlinear effect
+        0.5 * X[:, 0] ** 2  # Nonlinear effect
         - 0.3 * X[:, 1] * X[:, 2]  # Interaction
         + jnp.sin(X[:, 3])  # Nonlinearity
         + 0.1
@@ -50,7 +94,7 @@ def main():
 
         weighter = PermutationWeighter(
             discriminator=discriminator,
-            num_epochs=5000,
+            num_epochs=500,
             batch_size=500,
             random_state=42,
         )

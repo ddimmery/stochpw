@@ -2,13 +2,13 @@
 Demonstration of advanced features in stochpw.
 
 This example shows how to use:
+
 1. Alternative loss functions (exponential, Brier)
 2. L2 regularization
 3. Early stopping
 """
 
 import jax.numpy as jnp
-
 from stochpw import (
     MLPDiscriminator,
     PermutationWeighter,
@@ -17,6 +17,86 @@ from stochpw import (
     l2_param_penalty,
     standardized_mean_difference,
 )
+
+key_code = """import jax.numpy as jnp
+from stochpw import (
+    MLPDiscriminator,
+    PermutationWeighter,
+    brier_loss,
+    exponential_loss,
+    l2_param_penalty,
+    standardized_mean_difference,
+)
+
+# Generate data with confounding
+# X, A = generate_data(n=1000, seed=42)
+
+# 1. Default Configuration (Logistic Loss)
+weighter_default = PermutationWeighter(
+    num_epochs=50,
+    batch_size=128,
+    random_state=42,
+)
+weighter_default.fit(X, A)
+weights_default = weighter_default.predict(X, A)
+
+# 2. Alternative Loss: Exponential Loss
+weighter_exp = PermutationWeighter(
+    loss_fn=exponential_loss,
+    num_epochs=50,
+    batch_size=128,
+    random_state=42,
+)
+weighter_exp.fit(X, A)
+
+# 3. Alternative Loss: Brier Score
+weighter_brier = PermutationWeighter(
+    loss_fn=brier_loss,
+    num_epochs=50,
+    batch_size=128,
+    random_state=42,
+)
+weighter_brier.fit(X, A)
+
+# 4. With L2 Regularization
+mlp = MLPDiscriminator(hidden_dims=[64, 32])
+weighter_reg = PermutationWeighter(
+    discriminator=mlp,
+    regularization_fn=l2_param_penalty,
+    regularization_strength=0.01,
+    num_epochs=50,
+    batch_size=128,
+    random_state=42,
+)
+weighter_reg.fit(X, A)
+
+# 5. With Early Stopping
+weighter_early = PermutationWeighter(
+    early_stopping=True,
+    patience=10,
+    min_delta=0.001,
+    num_epochs=200,  # Set high, but will stop early
+    batch_size=128,
+    random_state=42,
+)
+weighter_early.fit(X, A)
+
+# 6. All Features Combined
+mlp_combined = MLPDiscriminator(hidden_dims=[128, 64, 32], activation="tanh")
+weighter_combined = PermutationWeighter(
+    discriminator=mlp_combined,
+    loss_fn=brier_loss,
+    regularization_fn=l2_param_penalty,
+    regularization_strength=0.005,
+    early_stopping=True,
+    patience=15,
+    min_delta=0.001,
+    num_epochs=200,
+    batch_size=128,
+    random_state=42,
+)
+weighter_combined.fit(X, A)
+"""
 
 
 def generate_data(n=1000, seed=42):
@@ -64,6 +144,7 @@ def main():
     smd_default = standardized_mean_difference(X, A, weights_default)
 
     print(f"Final SMD: {jnp.max(jnp.abs(smd_default)):.4f}")
+    assert weighter_default.history_ is not None
     print(f"Training epochs: {len(weighter_default.history_['loss'])}")
     print(f"Final loss: {weighter_default.history_['loss'][-1]:.4f}")
 
@@ -82,6 +163,7 @@ def main():
     smd_exp = standardized_mean_difference(X, A, weights_exp)
 
     print(f"Final SMD: {jnp.max(jnp.abs(smd_exp)):.4f}")
+    assert weighter_exp.history_ is not None
     print(f"Final loss: {weighter_exp.history_['loss'][-1]:.4f}")
 
     print("\n" + "=" * 60)
@@ -99,6 +181,7 @@ def main():
     smd_brier = standardized_mean_difference(X, A, weights_brier)
 
     print(f"Final SMD: {jnp.max(jnp.abs(smd_brier)):.4f}")
+    assert weighter_brier.history_ is not None
     print(f"Final loss: {weighter_brier.history_['loss'][-1]:.4f}")
 
     print("\n" + "=" * 60)
@@ -128,15 +211,15 @@ def main():
     )
     weighter_no_reg.fit(X, A)
 
+    assert weighter_reg.params_ is not None
+    assert weighter_no_reg.params_ is not None
     param_norm_reg = l2_param_penalty(weighter_reg.params_)
     param_norm_no_reg = l2_param_penalty(weighter_no_reg.params_)
 
     print(f"Final SMD: {jnp.max(jnp.abs(smd_reg)):.4f}")
     print(f"Parameter L2 norm (with regularization): {param_norm_reg:.2f}")
     print(f"Parameter L2 norm (without regularization): {param_norm_no_reg:.2f}")
-    print(
-        f"Reduction: {100 * (1 - param_norm_reg / param_norm_no_reg):.1f}%"
-    )
+    print(f"Reduction: {100 * (1 - param_norm_reg / param_norm_no_reg):.1f}%")
 
     print("\n" + "=" * 60)
     print("5. With Early Stopping")
@@ -155,10 +238,9 @@ def main():
     smd_early = standardized_mean_difference(X, A, weights_early)
 
     print(f"Final SMD: {jnp.max(jnp.abs(smd_early)):.4f}")
+    assert weighter_early.history_ is not None
     print(f"Stopped at epoch: {len(weighter_early.history_['loss'])}/200")
-    print(
-        f"Epochs saved: {200 - len(weighter_early.history_['loss'])}"
-    )
+    print(f"Epochs saved: {200 - len(weighter_early.history_['loss'])}")
 
     print("\n" + "=" * 60)
     print("6. All Features Combined")
@@ -182,11 +264,11 @@ def main():
     smd_combined = standardized_mean_difference(X, A, weights_combined)
 
     print(f"Final SMD: {jnp.max(jnp.abs(smd_combined)):.4f}")
+    assert weighter_combined.history_ is not None
+    assert weighter_combined.params_ is not None
     print(f"Stopped at epoch: {len(weighter_combined.history_['loss'])}/200")
     print(f"Final loss: {weighter_combined.history_['loss'][-1]:.4f}")
-    print(
-        f"Parameter L2 norm: {l2_param_penalty(weighter_combined.params_):.2f}"
-    )
+    print(f"Parameter L2 norm: {l2_param_penalty(weighter_combined.params_):.2f}")
 
     print("\n" + "=" * 60)
     print("Summary: Balance Improvement")

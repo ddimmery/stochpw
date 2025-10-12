@@ -79,7 +79,7 @@ class PermutationWeighter:
     >>> weights = weighter.predict(X, A)
     >>>
     >>> # MLP discriminator with custom architecture
-    >>> mlp_disc = MLPDiscriminator(hidden_dims=[128, 64], activation='tanh')
+    >>> mlp_disc = MLPDiscriminator(hidden_dims=[128, 64], activation="tanh")
     >>> weighter = PermutationWeighter(discriminator=mlp_disc, num_epochs=50, random_state=42)
     >>> weighter.fit(X, A)
     >>> weights = weighter.predict(X, A)

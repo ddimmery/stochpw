@@ -5,6 +5,12 @@ repo_name: "stochpw"
 nav:
   - Home: index.md
   - About: about.md
+  - Examples: 
+    - examples/index.md
+    - examples/basic_usage.md
+    - examples/mlp_discriminator.md
+    - examples/diagnostics_demo.md
+    - examples/advanced_features.md
   - API Reference: reference/
   - Development:
     - Contributing: contributing.md
