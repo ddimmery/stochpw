@@ -3,6 +3,7 @@
 Demonstration of comprehensive diagnostics in stochpw.
 
 This example shows how to use:
+
 1. Balance reports
 2. Weight statistics
 3. ROC curves (most important discriminator diagnostic)
@@ -220,6 +221,7 @@ Demo Complete!
     Demonstration of comprehensive diagnostics in stochpw.
     
     This example shows how to use:
+    
     1. Balance reports
     2. Weight statistics
     3. ROC curves (most important discriminator diagnostic)
@@ -243,7 +245,6 @@ Demo Complete!
         plot_roc_curve,
         plot_weight_distribution,
     )
-    
     
     key_code = """import jax
     import jax.numpy as jnp
@@ -380,6 +381,7 @@ Demo Complete!
         weighter.fit(X, A)
         weights = weighter.predict(X, A)
     
+        assert weighter.history_ is not None
         print(f"\nTraining completed in {len(weighter.history_['loss'])} epochs")
         print(f"Final training loss: {weighter.history_['loss'][-1]:.4f}")
     
@@ -393,9 +395,7 @@ Demo Complete!
         final_smd = standardized_mean_difference(X, A, weights)
         print(f"\nFinal max SMD: {jnp.max(jnp.abs(final_smd)):.4f}")
         print(f"Final mean SMD: {jnp.mean(jnp.abs(final_smd)):.4f}")
-        smd_improvement = (
-            1 - jnp.max(jnp.abs(final_smd)) / jnp.max(jnp.abs(initial_smd))
-        ) * 100
+        smd_improvement = (1 - jnp.max(jnp.abs(final_smd)) / jnp.max(jnp.abs(initial_smd))) * 100
         print(f"SMD improvement: {smd_improvement:.1f}%")
     
         # Get comprehensive balance report
@@ -472,21 +472,15 @@ Demo Complete!
         print("=" * 70)
     
         # Generate discriminator predictions on training data
+        assert weighter.params_ is not None
         AX = jnp.einsum("bi,bj->bij", A[:, None] if A.ndim == 1 else A, X).reshape(X.shape[0], -1)
         logits = weighter.discriminator.apply(weighter.params_, A[:, None] if A.ndim == 1 else A, X, AX)
         probs = jax.nn.sigmoid(logits)
     
         # Use same permuted data from ROC analysis
         A_perm_reshaped = A_perm[:, None] if A_perm.ndim == 1 else A_perm
-        AX_perm = jnp.einsum("bi,bj->bij", A_perm_reshaped, X).reshape(
-            X.shape[0], -1
-        )
-        logits_perm = weighter.discriminator.apply(
-            weighter.params_,
-            A_perm_reshaped,
-            X,
-            AX_perm
-        )
+        AX_perm = jnp.einsum("bi,bj->bij", A_perm_reshaped, X).reshape(X.shape[0], -1)
+        logits_perm = weighter.discriminator.apply(weighter.params_, A_perm_reshaped, X, AX_perm)
         probs_perm = jax.nn.sigmoid(logits_perm)
     
         # Combine for calibration analysis
@@ -512,11 +506,9 @@ Demo Complete!
     
         print(f"\n{'Metric':<30} {'Before':<15} {'After':<15} {'Improvement':<15}")
         print("-" * 75)
-        max_smd_imp = (1 - final_report['max_smd'] / initial_report['max_smd']) * 100
-        mean_smd_imp = (
-            1 - final_report['mean_smd'] / initial_report['mean_smd']
-        ) * 100
-        ess_change = (final_report['ess'] / initial_report['ess'] - 1) * 100
+        max_smd_imp = (1 - final_report["max_smd"] / initial_report["max_smd"]) * 100
+        mean_smd_imp = (1 - final_report["mean_smd"] / initial_report["mean_smd"]) * 100
+        ess_change = (final_report["ess"] / initial_report["ess"] - 1) * 100
         print(
             f"{'Max SMD':<30} {initial_report['max_smd']:>13.4f}  "
             f"{final_report['max_smd']:>13.4f}  {max_smd_imp:>12.1f}%"

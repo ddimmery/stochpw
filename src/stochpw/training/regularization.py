@@ -1,29 +1,81 @@
-"""Regularization functions for discriminator training."""
+"""Regularization functions for permutation weighting.
 
-import jax
+This module provides regularization functions that operate on the output
+weights rather than model parameters, encouraging desirable properties
+of the reweighting scheme.
+"""
+
 import jax.numpy as jnp
 from jax import Array
 
 
-def l2_param_penalty(params: dict) -> Array:
+def entropy_penalty(weights: Array, eps: float = 1e-7) -> Array:
     """
-    L2 regularization penalty on parameters.
+    Entropy regularization on weights.
 
-    Penalizes large parameter values to encourage simpler models
-    and prevent overfitting.
+    Penalizes weights that diverge from uniform, encouraging smoother
+    reweighting and better effective sample size.
+
+    The entropy of normalized weights is computed as:
+        H = -sum(p * log(p)) where p = weights / sum(weights)
+
+    We return -H (negative entropy) as a penalty, since lower entropy
+    (more peaked weights) should be penalized.
 
     Parameters
     ----------
-    params : dict
-        Model parameters (PyTree structure)
+    weights : Array, shape (n,)
+        Importance weights
+    eps : float, default=1e-7
+        Small constant for numerical stability
 
     Returns
     -------
-    penalty : float
-        L2 penalty value (sum of squared parameters)
+    penalty : Array
+        Negative entropy penalty (higher = more concentrated weights)
+
+    Notes
+    -----
+    - Uniform weights have maximum entropy
+    - Highly concentrated weights have low entropy (high penalty)
+    - Encourages effective sample size close to n
     """
-    # Flatten all parameters and compute squared L2 norm
-    leaves = jax.tree_util.tree_leaves(params)
-    penalty_sum = sum(jnp.sum(param**2) for param in leaves)
-    # Ensure we return an Array type
-    return jnp.asarray(penalty_sum)
+    # Normalize weights to probability distribution
+    p = weights / (jnp.sum(weights) + eps)
+    p = jnp.clip(p, eps, 1.0)  # Avoid log(0)
+
+    # Compute entropy: H = -sum(p * log(p))
+    entropy = -jnp.sum(p * jnp.log(p))
+
+    # Return negative entropy as penalty (we want to maximize entropy)
+    return -entropy
+
+
+def lp_weight_penalty(weights: Array, p: float = 2.0) -> Array:
+    """
+    L_p penalty on weight deviations from uniform.
+
+    Penalizes weights that deviate from 1, encouraging more uniform weighting.
+    Different values of p produce different behaviors:
+    - p=1: L1 penalty (sparse, robust to outliers)
+    - p=2: L2 penalty (smooth, sensitive to large deviations)
+
+    Parameters
+    ----------
+    weights : Array, shape (n,)
+        Importance weights
+    p : float, default=2.0
+        The power for the L_p norm (must be >= 1)
+
+    Returns
+    -------
+    penalty : Array
+        L_p penalty on weight deviations
+
+    Notes
+    -----
+    Computed as sum(|weights - 1|^p), which penalizes deviation
+    from uniform weights.
+    """
+    deviations = jnp.abs(weights - 1.0)
+    return jnp.sum(deviations**p)

@@ -29,10 +29,11 @@ from .models import BaseDiscriminator, LinearDiscriminator, MLPDiscriminator
 from .training import (
     brier_loss,
     create_training_batch,
+    entropy_penalty,
     exponential_loss,
     fit_discriminator,
-    l2_param_penalty,
     logistic_loss,
+    lp_weight_penalty,
     train_step,
 )
 from .utils import permute_treatment, validate_inputs
@@ -49,7 +50,8 @@ __all__ = [
     "logistic_loss",
     "exponential_loss",
     "brier_loss",
-    "l2_param_penalty",
+    "entropy_penalty",
+    "lp_weight_penalty",
     "train_step",
     "fit_discriminator",
     # Weight extraction

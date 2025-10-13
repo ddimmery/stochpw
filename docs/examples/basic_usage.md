@@ -85,7 +85,6 @@ Training:
     import jax.numpy as jnp
     from stochpw import PermutationWeighter, effective_sample_size, standardized_mean_difference
     
-    
     key_code = """import jax
     import jax.numpy as jnp
     from stochpw import PermutationWeighter, effective_sample_size, standardized_mean_difference

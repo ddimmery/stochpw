@@ -46,8 +46,8 @@ class PermutationWeighter:
         Loss function (logits, labels) -> loss. Can be logistic_loss,
         exponential_loss, or brier_loss.
     regularization_fn : Callable, optional
-        Regularization function on parameters (params) -> penalty.
-        Use l2_param_penalty for L2 regularization.
+        Regularization function on weights (weights) -> penalty.
+        Use entropy_penalty or lp_weight_penalty (with p=1 or p=2).
     regularization_strength : float, default=0.0
         Strength of regularization penalty
     early_stopping : bool, default=False
@@ -93,7 +93,7 @@ class PermutationWeighter:
         batch_size: int = 256,
         random_state: Optional[int] = None,
         loss_fn: Callable[[Array, Array], Array] = logistic_loss,
-        regularization_fn: Optional[Callable[[dict], Array]] = None,
+        regularization_fn: Optional[Callable[[Array], Array]] = None,
         regularization_strength: float = 0.0,
         early_stopping: bool = False,
         patience: int = 10,

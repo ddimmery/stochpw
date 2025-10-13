@@ -18,8 +18,9 @@ def train_step(
     discriminator_fn: Callable,
     optimizer: optax.GradientTransformation,
     loss_fn_type: Callable[[Array, Array], Array] = logistic_loss,
-    regularization_fn: Callable[[dict], Array] | None = None,
+    regularization_fn: Callable[[Array], Array] | None = None,
     regularization_strength: float = 0.0,
+    eps: float = 1e-7,
 ) -> TrainingStepResult:
     """
     Single training step (JIT-compiled).
@@ -39,9 +40,11 @@ def train_step(
     loss_fn_type : Callable, default=logistic_loss
         Loss function (logits, labels) -> loss
     regularization_fn : Callable, optional
-        Regularization function on parameters (params) -> penalty
+        Regularization function on weights (weights) -> penalty
     regularization_strength : float, default=0.0
         Strength of regularization penalty
+    eps : float, default=1e-7
+        Numerical stability constant for weight computation
 
     Returns
     -------
@@ -53,9 +56,19 @@ def train_step(
         logits = discriminator_fn(params, batch.A, batch.X, batch.AX)
         loss = loss_fn_type(logits, batch.C)
 
-        # Add regularization if specified
+        # Add weight-based regularization if specified
         if regularization_fn is not None and regularization_strength > 0:
-            loss = loss + regularization_strength * regularization_fn(params)
+            # Compute weights from discriminator output (only for observed data)
+            # Filter to C=0 (observed data) for weight computation
+            observed_mask = batch.C == 0
+            observed_logits = logits[observed_mask]
+            eta = jax.nn.sigmoid(observed_logits)
+            eta_clipped = jnp.clip(eta, eps, 1 - eps)
+            weights = eta_clipped / (1 - eta_clipped)
+
+            # Apply regularization on weights
+            penalty = regularization_fn(weights)
+            loss = loss + regularization_strength * penalty
 
         return loss
 
@@ -84,11 +97,12 @@ def fit_discriminator(
     batch_size: int,
     rng_key: Array,
     loss_fn: Callable[[Array, Array], Array] = logistic_loss,
-    regularization_fn: Callable[[dict], Array] | None = None,
+    regularization_fn: Callable[[Array], Array] | None = None,
     regularization_strength: float = 0.0,
     early_stopping: bool = False,
     patience: int = 10,
     min_delta: float = 1e-4,
+    eps: float = 1e-7,
 ) -> tuple[dict, dict]:
     """
     Complete training loop for discriminator.
@@ -114,7 +128,7 @@ def fit_discriminator(
     loss_fn : Callable, default=logistic_loss
         Loss function (logits, labels) -> loss
     regularization_fn : Callable, optional
-        Regularization function on parameters (params) -> penalty
+        Regularization function on weights (weights) -> penalty
     regularization_strength : float, default=0.0
         Strength of regularization penalty
     early_stopping : bool, default=False
@@ -123,6 +137,8 @@ def fit_discriminator(
         Number of epochs to wait for improvement before stopping
     min_delta : float, default=1e-4
         Minimum change in loss to qualify as improvement
+    eps : float, default=1e-7
+        Numerical stability constant for weight computation
 
     Returns
     -------
@@ -181,6 +197,7 @@ def fit_discriminator(
                 loss_fn_type=loss_fn,
                 regularization_fn=regularization_fn,
                 regularization_strength=regularization_strength,
+                eps=eps,
             )
             state = result.state
             epoch_losses.append(float(result.loss))

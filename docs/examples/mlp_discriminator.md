@@ -119,7 +119,6 @@ MLP (tanh)                     0.538           0.059         89.0%
     import jax.numpy as jnp
     from stochpw import MLPDiscriminator, PermutationWeighter, standardized_mean_difference
     
-    
     key_code = """import jax
     import jax.numpy as jnp
     from stochpw import MLPDiscriminator, PermutationWeighter, standardized_mean_difference
@@ -176,7 +175,7 @@ MLP (tanh)                     0.538           0.059         89.0%
     
         # Complex nonlinear propensity function
         propensity = jax.nn.sigmoid(
-            0.5 * X[:, 0]**2  # Nonlinear effect
+            0.5 * X[:, 0] ** 2  # Nonlinear effect
             - 0.3 * X[:, 1] * X[:, 2]  # Interaction
             + jnp.sin(X[:, 3])  # Nonlinearity
             + 0.1

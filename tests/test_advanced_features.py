@@ -6,8 +6,9 @@ from stochpw import (
     MLPDiscriminator,
     PermutationWeighter,
     brier_loss,
+    entropy_penalty,
     exponential_loss,
-    l2_param_penalty,
+    lp_weight_penalty,
 )
 
 
@@ -122,41 +123,54 @@ class TestAlternativeLossFunctions:
 class TestRegularization:
     """Test regularization functionality."""
 
-    def test_l2_param_penalty_zero_for_zero_params(self):
-        """L2 penalty should be zero for zero parameters."""
-        params = {"w": jnp.zeros((10,)), "b": jnp.zeros((1,))}
-        penalty = l2_param_penalty(params)
+    def test_entropy_penalty_uniform_weights(self):
+        """Entropy penalty should be maximal (most negative) for uniform weights."""
+        weights = jnp.ones((100,))
+        penalty = entropy_penalty(weights)
+        # Should return negative entropy, which should be close to -log(100)
+        assert penalty < -4.5  # -log(100) ≈ -4.6
+
+    def test_entropy_penalty_nonuniform_weights(self):
+        """Entropy penalty should be less negative for nonuniform weights."""
+        uniform_weights = jnp.ones((100,))
+        nonuniform_weights = jnp.array([10.0] * 10 + [1.0] * 90)
+
+        penalty_uniform = entropy_penalty(uniform_weights)
+        penalty_nonuniform = entropy_penalty(nonuniform_weights)
+
+        # More uniform weights should have more negative penalty (higher entropy)
+        assert penalty_uniform < penalty_nonuniform
+
+    def test_lp_weight_penalty_uniform_weights(self):
+        """L_p penalty should be zero for uniform weights (all equal to 1)."""
+        weights = jnp.ones((100,))
+        penalty = lp_weight_penalty(weights, p=2.0)
         assert jnp.abs(penalty) < 1e-6
 
-    def test_l2_param_penalty_nonzero_for_nonzero_params(self):
-        """L2 penalty should be nonzero for nonzero parameters."""
-        params = {"w": jnp.ones((10,)), "b": jnp.ones((1,))}
-        penalty = l2_param_penalty(params)
-        # Sum of 11 ones squared = 11
-        assert jnp.abs(penalty - 11.0) < 1e-4
+    def test_lp_weight_penalty_nonuniform_weights(self):
+        """L_p penalty should be nonzero for nonuniform weights."""
+        weights = jnp.array([2.0, 1.5, 0.5, 0.8])
+        penalty_l2 = lp_weight_penalty(weights, p=2.0)
+        penalty_l1 = lp_weight_penalty(weights, p=1.0)
 
-    def test_l2_param_penalty_nested_params(self):
-        """L2 penalty should work with nested parameter structures."""
-        params = {
-            "layer1": {"w": jnp.ones((5,)), "b": jnp.ones((2,))},
-            "layer2": {"w": jnp.ones((3,)), "b": jnp.ones((1,))},
-        }
-        penalty = l2_param_penalty(params)
-        # Sum of (5+2+3+1) ones squared = 11
-        assert jnp.abs(penalty - 11.0) < 1e-4
+        assert penalty_l2 > 0
+        assert penalty_l1 > 0
 
-    def test_l2_param_penalty_gradient_exists(self):
-        """L2 penalty should have computable gradients."""
-        params = {"w": jnp.array([1.0, 2.0, 3.0])}
+    def test_lp_weight_penalty_gradient_exists(self):
+        """L_p penalty should have computable gradients."""
+        weights = jnp.array([1.0, 2.0, 3.0])
 
-        grad_fn = jax.grad(l2_param_penalty)
-        grads = grad_fn(params)
+        def penalty_fn(w):
+            return lp_weight_penalty(w, p=2.0)
 
-        assert "w" in grads
-        assert jnp.all(jnp.isfinite(grads["w"]))
+        grad_fn = jax.grad(penalty_fn)
+        grads = grad_fn(weights)
 
-    def test_regularization_reduces_parameter_magnitude(self):
-        """Regularization should lead to smaller parameter values."""
+        assert jnp.all(jnp.isfinite(grads))
+        assert grads.shape == weights.shape
+
+    def test_regularization_improves_weight_uniformity(self):
+        """Entropy regularization should lead to more uniform weights."""
         X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]] * 20)
         A = jnp.array([[0.0], [1.0], [0.0], [1.0]] * 20)
 
@@ -167,21 +181,23 @@ class TestRegularization:
             random_state=42,
         )
         weighter_no_reg.fit(X, A)
-        params_no_reg_norm = l2_param_penalty(weighter_no_reg.params_)
+        weights_no_reg = weighter_no_reg.predict(X, A)
+        entropy_no_reg = -entropy_penalty(weights_no_reg)
 
-        # With strong regularization
+        # With entropy regularization
         weighter_with_reg = PermutationWeighter(
-            regularization_fn=l2_param_penalty,
+            regularization_fn=entropy_penalty,
             regularization_strength=0.1,
             num_epochs=20,
             batch_size=16,
             random_state=42,
         )
         weighter_with_reg.fit(X, A)
-        params_with_reg_norm = l2_param_penalty(weighter_with_reg.params_)
+        weights_with_reg = weighter_with_reg.predict(X, A)
+        entropy_with_reg = -entropy_penalty(weights_with_reg)
 
-        # Regularization should reduce parameter magnitude
-        assert params_with_reg_norm < params_no_reg_norm
+        # Entropy regularization should increase entropy (more uniform weights)
+        assert entropy_with_reg > entropy_no_reg
 
     def test_regularization_with_mlp(self):
         """Test regularization works with MLP discriminator."""
@@ -191,7 +207,7 @@ class TestRegularization:
         mlp = MLPDiscriminator(hidden_dims=[32, 16])
         weighter = PermutationWeighter(
             discriminator=mlp,
-            regularization_fn=l2_param_penalty,
+            regularization_fn=lambda w: lp_weight_penalty(w, p=2.0),
             regularization_strength=0.01,
             num_epochs=10,
             batch_size=16,
@@ -293,7 +309,7 @@ class TestCombinedFeatures:
 
         weighter = PermutationWeighter(
             loss_fn=brier_loss,
-            regularization_fn=l2_param_penalty,
+            regularization_fn=entropy_penalty,
             regularization_strength=0.01,
             early_stopping=True,
             patience=5,
@@ -318,7 +334,7 @@ class TestCombinedFeatures:
         weighter = PermutationWeighter(
             discriminator=mlp,
             loss_fn=exponential_loss,
-            regularization_fn=l2_param_penalty,
+            regularization_fn=lambda w: lp_weight_penalty(w, p=1.0),
             regularization_strength=0.005,
             early_stopping=True,
             patience=10,

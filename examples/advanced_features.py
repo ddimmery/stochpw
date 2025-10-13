@@ -4,7 +4,7 @@ Demonstration of advanced features in stochpw.
 This example shows how to use:
 
 1. Alternative loss functions (exponential, Brier)
-2. L2 regularization
+2. Weight-based regularization (entropy, L_p penalties)
 3. Early stopping
 """
 
@@ -13,8 +13,8 @@ from stochpw import (
     MLPDiscriminator,
     PermutationWeighter,
     brier_loss,
+    entropy_penalty,
     exponential_loss,
-    l2_param_penalty,
     standardized_mean_difference,
 )
 
@@ -23,8 +23,9 @@ from stochpw import (
     MLPDiscriminator,
     PermutationWeighter,
     brier_loss,
+    entropy_penalty,
     exponential_loss,
-    l2_param_penalty,
+    lp_weight_penalty,
     standardized_mean_difference,
 )
 
@@ -58,19 +59,29 @@ weighter_brier = PermutationWeighter(
 )
 weighter_brier.fit(X, A)
 
-# 4. With L2 Regularization
+# 4. With Entropy Regularization
 mlp = MLPDiscriminator(hidden_dims=[64, 32])
-weighter_reg = PermutationWeighter(
+weighter_entropy = PermutationWeighter(
     discriminator=mlp,
-    regularization_fn=l2_param_penalty,
+    regularization_fn=entropy_penalty,
     regularization_strength=0.01,
     num_epochs=50,
     batch_size=128,
     random_state=42,
 )
-weighter_reg.fit(X, A)
+weighter_entropy.fit(X, A)
 
-# 5. With Early Stopping
+# 5. With L2 Weight Regularization
+weighter_l2 = PermutationWeighter(
+    regularization_fn=lambda w: lp_weight_penalty(w, p=2.0),
+    regularization_strength=0.001,
+    num_epochs=50,
+    batch_size=128,
+    random_state=42,
+)
+weighter_l2.fit(X, A)
+
+# 6. With Early Stopping
 weighter_early = PermutationWeighter(
     early_stopping=True,
     patience=10,
@@ -81,13 +92,13 @@ weighter_early = PermutationWeighter(
 )
 weighter_early.fit(X, A)
 
-# 6. All Features Combined
+# 7. All Features Combined
 mlp_combined = MLPDiscriminator(hidden_dims=[128, 64, 32], activation="tanh")
 weighter_combined = PermutationWeighter(
     discriminator=mlp_combined,
     loss_fn=brier_loss,
-    regularization_fn=l2_param_penalty,
-    regularization_strength=0.005,
+    regularization_fn=entropy_penalty,
+    regularization_strength=0.01,
     early_stopping=True,
     patience=15,
     min_delta=0.001,
@@ -185,23 +196,23 @@ def main():
     print(f"Final loss: {weighter_brier.history_['loss'][-1]:.4f}")
 
     print("\n" + "=" * 60)
-    print("4. With L2 Regularization")
+    print("4. With Entropy Regularization")
     print("=" * 60)
 
     mlp = MLPDiscriminator(hidden_dims=[64, 32])
-    weighter_reg = PermutationWeighter(
+    weighter_entropy_reg = PermutationWeighter(
         discriminator=mlp,
-        regularization_fn=l2_param_penalty,
+        regularization_fn=entropy_penalty,
         regularization_strength=0.01,
         num_epochs=50,
         batch_size=128,
         random_state=42,
     )
-    weighter_reg.fit(X, A)
-    weights_reg = weighter_reg.predict(X, A)
-    smd_reg = standardized_mean_difference(X, A, weights_reg)
+    weighter_entropy_reg.fit(X, A)
+    weights_entropy_reg = weighter_entropy_reg.predict(X, A)
+    smd_entropy_reg = standardized_mean_difference(X, A, weights_entropy_reg)
 
-    # Compare parameter norms
+    # Compare weight entropy with and without regularization
     mlp_no_reg = MLPDiscriminator(hidden_dims=[64, 32])
     weighter_no_reg = PermutationWeighter(
         discriminator=mlp_no_reg,
@@ -210,16 +221,16 @@ def main():
         random_state=42,
     )
     weighter_no_reg.fit(X, A)
+    weights_no_reg = weighter_no_reg.predict(X, A)
 
-    assert weighter_reg.params_ is not None
-    assert weighter_no_reg.params_ is not None
-    param_norm_reg = l2_param_penalty(weighter_reg.params_)
-    param_norm_no_reg = l2_param_penalty(weighter_no_reg.params_)
+    # Compute negative entropy (penalty) for comparison
+    entropy_with_reg = -entropy_penalty(weights_entropy_reg)
+    entropy_without_reg = -entropy_penalty(weights_no_reg)
 
-    print(f"Final SMD: {jnp.max(jnp.abs(smd_reg)):.4f}")
-    print(f"Parameter L2 norm (with regularization): {param_norm_reg:.2f}")
-    print(f"Parameter L2 norm (without regularization): {param_norm_no_reg:.2f}")
-    print(f"Reduction: {100 * (1 - param_norm_reg / param_norm_no_reg):.1f}%")
+    print(f"Final SMD: {jnp.max(jnp.abs(smd_entropy_reg)):.4f}")
+    print(f"Weight entropy (with regularization): {entropy_with_reg:.2f}")
+    print(f"Weight entropy (without regularization): {entropy_without_reg:.2f}")
+    print("Higher entropy = more uniform weights (better ESS)")
 
     print("\n" + "=" * 60)
     print("5. With Early Stopping")
@@ -250,7 +261,7 @@ def main():
     weighter_combined = PermutationWeighter(
         discriminator=mlp_combined,
         loss_fn=brier_loss,
-        regularization_fn=l2_param_penalty,
+        regularization_fn=entropy_penalty,
         regularization_strength=0.005,
         early_stopping=True,
         patience=15,
@@ -268,7 +279,8 @@ def main():
     assert weighter_combined.params_ is not None
     print(f"Stopped at epoch: {len(weighter_combined.history_['loss'])}/200")
     print(f"Final loss: {weighter_combined.history_['loss'][-1]:.4f}")
-    print(f"Parameter L2 norm: {l2_param_penalty(weighter_combined.params_):.2f}")
+    entropy_combined = -entropy_penalty(weights_combined)
+    print(f"Weight entropy: {entropy_combined:.2f}")
 
     print("\n" + "=" * 60)
     print("Summary: Balance Improvement")
@@ -277,7 +289,7 @@ def main():
     print(f"Default (logistic):         {jnp.max(jnp.abs(smd_default)):.4f}")
     print(f"Exponential loss:           {jnp.max(jnp.abs(smd_exp)):.4f}")
     print(f"Brier loss:                 {jnp.max(jnp.abs(smd_brier)):.4f}")
-    print(f"With regularization:        {jnp.max(jnp.abs(smd_reg)):.4f}")
+    print(f"With entropy regularization: {jnp.max(jnp.abs(smd_entropy_reg)):.4f}")
     print(f"With early stopping:        {jnp.max(jnp.abs(smd_early)):.4f}")
     print(f"All features combined:      {jnp.max(jnp.abs(smd_combined)):.4f}")
 
