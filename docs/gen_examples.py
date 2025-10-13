@@ -44,7 +44,7 @@ def run_example_and_capture(example_path: Path, output_dir: Path, figures_dir: P
             [sys.executable, str(example_path)],
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=120,
         )
 
         if result.returncode != 0:
