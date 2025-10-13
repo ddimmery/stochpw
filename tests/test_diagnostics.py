@@ -1,7 +1,11 @@
 """Tests for stochpw.diagnostics module."""
 
 import jax.numpy as jnp
-from stochpw.diagnostics import effective_sample_size, standardized_mean_difference
+from stochpw.diagnostics import (
+    effective_sample_size,
+    standardized_mean_difference,
+    standardized_mean_difference_se,
+)
 
 
 class TestEffectiveSampleSize:
@@ -213,3 +217,98 @@ class TestStandardizedMeanDifference:
 
         # Different weighting should give different SMD
         assert not jnp.allclose(smd_uniform, smd_variable, atol=0.01)
+
+
+class TestStandardizedMeanDifferenceSE:
+    """Tests for standardized_mean_difference_se function."""
+
+    def test_binary_treatment_se_shape(self):
+        """SE should have same shape as number of features for binary treatment."""
+        X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]] * 10)
+        A = jnp.array([[0.0], [1.0], [0.0], [1.0]] * 10)
+        weights = jnp.ones(40)
+
+        se = standardized_mean_difference_se(X, A, weights)
+
+        assert se.shape == (2,)
+        assert jnp.all(se > 0)  # SE should be positive
+
+    def test_binary_treatment_1d_array(self):
+        """SE should work with 1D treatment array."""
+        X = jnp.array([[1.0, 2.0, 3.0]] * 20)
+        A = jnp.array([0.0, 1.0] * 10)  # 1D array
+        weights = jnp.ones(20)
+
+        se = standardized_mean_difference_se(X, A, weights)
+
+        assert se.shape == (3,)
+        assert jnp.all(se > 0)
+
+    def test_continuous_treatment_se(self):
+        """SE should work with continuous treatment."""
+        X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0]] * 15)
+        A = jnp.linspace(0, 1, 45).reshape(-1, 1)  # Continuous treatment
+        weights = jnp.ones(45)
+
+        se = standardized_mean_difference_se(X, A, weights)
+
+        assert se.shape == (2,)
+        assert jnp.all(se > 0)
+
+    def test_higher_weights_reduce_se(self):
+        """Higher effective sample size should reduce SE."""
+        X = jnp.array([[1.0, 2.0]] * 100)
+        A = jnp.array([[0.0]] * 50 + [[1.0]] * 50)
+
+        # Uniform weights (high ESS)
+        weights_uniform = jnp.ones(100)
+        se_uniform = standardized_mean_difference_se(X, A, weights_uniform)
+
+        # Variable weights with unequal distribution (lower ESS)
+        # Give more weight to some samples, less to others
+        weights_variable = jnp.concatenate(
+            [jnp.array([0.1] * 25 + [2.0] * 25), jnp.array([0.1] * 25 + [2.0] * 25)]
+        )
+        se_variable = standardized_mean_difference_se(X, A, weights_variable)
+
+        # Variable weights should have higher SE due to lower ESS
+        assert jnp.all(se_variable > se_uniform)
+
+    def test_2d_treatment_gets_squeezed(self):
+        """2D treatment array should be squeezed correctly."""
+        X = jnp.array([[1.0, 2.0, 3.0]] * 30)
+        A = jnp.array([[0.0]] * 15 + [[1.0]] * 15)
+        weights = jnp.ones(30)
+
+        se = standardized_mean_difference_se(X, A, weights)
+
+        assert se.shape == (3,)
+        assert jnp.all(jnp.isfinite(se))
+
+    def test_multivariate_covariates(self):
+        """SE should work with many covariates."""
+        X = jnp.array([[1.0, 2.0, 3.0, 4.0, 5.0]] * 40)
+        A = jnp.array([[0.0]] * 20 + [[1.0]] * 20)
+        weights = jnp.ones(40)
+
+        se = standardized_mean_difference_se(X, A, weights)
+
+        assert se.shape == (5,)
+        assert jnp.all(se > 0)
+
+    def test_se_scales_with_sample_size(self):
+        """SE should decrease with larger sample size."""
+        # Small sample
+        X_small = jnp.array([[1.0, 2.0]] * 20)
+        A_small = jnp.array([[0.0]] * 10 + [[1.0]] * 10)
+        weights_small = jnp.ones(20)
+        se_small = standardized_mean_difference_se(X_small, A_small, weights_small)
+
+        # Large sample
+        X_large = jnp.array([[1.0, 2.0]] * 200)
+        A_large = jnp.array([[0.0]] * 100 + [[1.0]] * 100)
+        weights_large = jnp.ones(200)
+        se_large = standardized_mean_difference_se(X_large, A_large, weights_large)
+
+        # Larger sample should have smaller SE
+        assert jnp.all(se_large < se_small)

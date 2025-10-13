@@ -51,7 +51,7 @@ class BaseDiscriminator(ABC):
         params : PyTree
             Initialized parameters (any JAX-compatible PyTree structure)
         """
-        pass
+        raise NotImplementedError  # pragma: no cover
 
     @abstractmethod
     def apply(self, params: PyTree, a: Array, x: Array, ax: Array) -> Array:
@@ -79,7 +79,7 @@ class BaseDiscriminator(ABC):
         The logits represent the raw output before sigmoid activation.
         They are used in the logistic loss: BCE(sigmoid(logits), labels).
         """
-        pass
+        raise NotImplementedError  # pragma: no cover
 
     def __call__(self, params: PyTree, a: Array, x: Array, ax: Array) -> Array:
         """
