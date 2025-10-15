@@ -1,20 +1,33 @@
-"""
-Lalonde experiment example with permutation weighting.
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#   kernelspec:
+#     display_name: Python 3
+#     language: python
+#     name: python3
+# ---
 
-This example demonstrates using permutation weighting on the classic Lalonde (1986)
-observational dataset to estimate the average treatment effect (ATE) of a job
-training program on earnings.
+# %% [markdown]
+# # Lalonde Experiment: Permutation Weighting for ATE Estimation
+#
+# This example demonstrates using permutation weighting on the classic Lalonde (1986)
+# observational dataset to estimate the average treatment effect (ATE) of a job
+# training program on earnings.
+#
+# The dataset combines experimental treatment units from the NSW program with
+# non-experimental control units, creating confounding and selection bias that
+# must be addressed to recover the experimental benchmark ATE of $1,794.
+#
+# **Reference:**
+# LaLonde, R. J. (1986). "Evaluating the Econometric Evaluations of Training
+# Programs with Experimental Data". The American Economic Review, 76(4), 604-620.
 
-The dataset combines experimental treatment units from the NSW program with
-non-experimental control units, creating confounding and selection bias that
-must be addressed to recover the experimental benchmark ATE of $1,794.
-
-Reference:
-    LaLonde, R. J. (1986). "Evaluating the Econometric Evaluations of Training
-    Programs with Experimental Data". The American Economic Review, 76(4), 604-620.
-"""
-
-import os
+# %%
+import time
 from pathlib import Path
 
 import jax.numpy as jnp
@@ -26,36 +39,10 @@ from stochpw import (
     standardized_mean_difference,
 )
 
-key_code = """import jax.numpy as jnp
-from stochpw import PermutationWeighter, MLPDiscriminator, effective_sample_size
+# %% [markdown]
+# ## Helper Functions
 
-# Load Lalonde NSW observational dataset
-data = load_lalonde_nsw()
-X, A, Y = data['X'], data['A'], data['Y']
-
-# Fit permutation weighter with simple architecture
-weighter = PermutationWeighter(
-    discriminator=MLPDiscriminator(hidden_dims=[10]),
-    num_epochs=500,
-    batch_size=len(X),
-    random_state=42,
-)
-weighter.fit(X, A)
-weights = weighter.predict(X, A)
-
-# Estimate ATE with permutation weights
-ate_pw = estimate_ate(Y, A, weights)
-
-# Compare to naive (unadjusted) estimate
-ate_naive = estimate_ate(Y, A, jnp.ones_like(weights))
-
-# Benchmark: Experimental ATE = $1,794
-print(f"Naive ATE: ${ate_naive:.2f}")
-print(f"Permutation-weighted ATE: ${ate_pw:.2f}")
-print(f"Experimental benchmark: $1,794.00")
-"""
-
-
+# %%
 def load_lalonde_nsw():
     """
     Load the Lalonde NSW (National Supported Work) observational dataset.
@@ -77,51 +64,44 @@ def load_lalonde_nsw():
             - feature_names: List of covariate names
             - ate_benchmark: Experimental ATE estimate from RCT ($1,794)
     """
-    # Load data from CSV file
-    script_dir = Path(__file__).parent
-    data_path = script_dir / "nsw_data.csv"
+    # Find the data file
+    current_dir = Path(__file__).parent
+    data_file = current_dir.parent / "background" / "lalonde_nsw.csv"
 
-    if not data_path.exists():
+    if not data_file.exists():
         raise FileNotFoundError(
-            f"Data file not found at {data_path}. "
-            "Please ensure nsw_data.csv is in the examples directory."
+            f"Data file not found at {data_file}\n"
+            "Please ensure lalonde_nsw.csv is in the background/ directory."
         )
 
-    # Read CSV file (skip header)
-    data = np.genfromtxt(data_path, delimiter=",", skip_header=1)
+    # Load data
+    data = np.genfromtxt(data_file, delimiter=",", skip_header=1)
 
-    # Extract variables
-    # Columns: treat, age, educ, black, hisp, married, nodegree, re74, re75, re78
-    A = data[:, 0:1]  # Treatment
-    Y = data[:, 9:10]  # Outcome (earnings in 1978)
+    # Extract treatment, outcome, and covariates
+    A = data[:, 0:1]  # Treatment indicator (first column)
+    Y = data[:, 1:2]  # RE78 earnings (second column)
+    X = data[:, 2:]  # All other columns are covariates
 
-    # Covariates: age, education, black, hispanic, married, nodegree, re74, re75
-    X = data[:, 1:9]
-
+    # Feature names (from dataset documentation)
     feature_names = [
         "age",
         "education",
         "black",
         "hispanic",
         "married",
-        "no_degree",
-        "earnings_1974",
-        "earnings_1975",
+        "nodegree",
+        "RE74",  # earnings in 1974
+        "RE75",  # earnings in 1975
     ]
 
-    # Convert to JAX arrays
-    X = jnp.array(X, dtype=jnp.float32)
-    A = jnp.array(A, dtype=jnp.float32)
-    Y = jnp.array(Y, dtype=jnp.float32)
-
-    # Experimental benchmark from the original RCT
-    # This is the "ground truth" we're trying to recover with observational methods
+    # Experimental ATE benchmark (from LaLonde 1986 paper)
+    # This is the "true" ATE estimated from the randomized experiment
     ate_benchmark = 1794.0
 
     return {
-        "X": X,
-        "A": A,
-        "Y": Y,
+        "X": jnp.array(X),
+        "A": jnp.array(A),
+        "Y": jnp.array(Y),
         "feature_names": feature_names,
         "ate_benchmark": ate_benchmark,
     }
@@ -129,176 +109,218 @@ def load_lalonde_nsw():
 
 def estimate_ate(Y, A, weights):
     """
-    Estimate average treatment effect using importance weights.
+    Estimate the average treatment effect (ATE) using weighted means.
+
+    ATE = E[Y(1) - Y(0)] = E[Y|A=1] - E[Y|A=0]
 
     Args:
-        Y: Outcomes, shape (n, 1)
-        A: Treatments, shape (n, 1)
+        Y: Outcome array, shape (n, 1) or (n,)
+        A: Treatment array, shape (n, 1) or (n,)
         weights: Importance weights, shape (n,)
 
     Returns:
         float: Estimated ATE
     """
-    # Reshape for broadcasting
-    A_flat = A[:, 0]
-    Y_flat = Y[:, 0]
+    Y = Y.flatten()
+    A = A.flatten()
 
-    # Weighted means for treated and control
-    treated_mask = A_flat == 1
-    control_mask = A_flat == 0
+    treated_mask = A == 1
+    control_mask = A == 0
 
-    # Normalize weights within each group
-    weights_treated = weights * treated_mask
-    weights_treated = weights_treated / weights_treated.sum()
+    # Weighted mean for treated
+    weighted_y1 = jnp.sum(Y[treated_mask] * weights[treated_mask])
+    weighted_n1 = jnp.sum(weights[treated_mask])
+    mean_y1 = weighted_y1 / weighted_n1
 
-    weights_control = weights * control_mask
-    weights_control = weights_control / weights_control.sum()
+    # Weighted mean for control
+    weighted_y0 = jnp.sum(Y[control_mask] * weights[control_mask])
+    weighted_n0 = jnp.sum(weights[control_mask])
+    mean_y0 = weighted_y0 / weighted_n0
 
-    # Weighted means
-    y1_weighted = (Y_flat * weights_treated).sum()
-    y0_weighted = (Y_flat * weights_control).sum()
+    ate = mean_y1 - mean_y0
+    return float(ate)
 
-    return float(y1_weighted - y0_weighted)
+# %% [markdown]
+# ## Load Dataset
 
+# %%
+start_time = time.time()
 
-def main():
-    """Run Lalonde experiment with permutation weighting."""
-    print("=" * 70)
-    print("Lalonde Experiment: Permutation Weighting for ATE Estimation")
-    print("=" * 70)
+print("=" * 70)
+print("Lalonde Experiment: Permutation Weighting for ATE Estimation")
+print("=" * 70)
 
-    # Load observational data
-    print("\nLoading Lalonde NSW observational dataset...")
-    data = load_lalonde_nsw()
-    X, A, Y = data["X"], data["A"], data["Y"]
-    feature_names = data["feature_names"]
-    ate_benchmark = data["ate_benchmark"]
+# Load observational data
+print("\nLoading Lalonde NSW observational dataset...")
+data = load_lalonde_nsw()
+X, A, Y = data["X"], data["A"], data["Y"]
+feature_names = data["feature_names"]
+ate_benchmark = data["ate_benchmark"]
 
-    n_treated = int(A.sum())
-    n_control = len(A) - n_treated
+n_treated = int(A.sum())
+n_control = len(A) - n_treated
 
-    print(f"\nDataset statistics:")
-    print(f"  Total samples: {len(X)}")
-    print(f"  Treated: {n_treated}")
-    print(f"  Control: {n_control}")
-    print(f"  Covariates: {X.shape[1]}")
-    print(f"  Covariate names: {', '.join(feature_names)}")
+print("\nDataset statistics:")
+print(f"  Total samples: {len(X)}")
+print(f"  Treated: {n_treated}")
+print(f"  Control: {n_control}")
+print(f"  Covariates: {X.shape[1]}")
+print(f"  Covariate names: {', '.join(feature_names)}")
 
-    # Benchmark ATE (from randomized experiment)
-    print(f"\n{'='*70}")
-    print("Experimental Benchmark (Ground Truth)")
-    print(f"{'='*70}")
-    print(f"  Experimental ATE: ${ate_benchmark:.2f}")
-    print("  (From the original randomized controlled trial)")
+# %% [markdown]
+# ## Experimental Benchmark (Ground Truth)
 
-    # Naive estimate (unweighted difference in means) on observational data
-    print(f"\n{'='*70}")
-    print("Naive Estimate (No Adjustment)")
-    print(f"{'='*70}")
+# %%
+print(f"\n{'='*70}")
+print("Experimental Benchmark (Ground Truth)")
+print(f"{'='*70}")
+print(f"  Experimental ATE: ${ate_benchmark:.2f}")
+print("  (From the original randomized controlled trial)")
 
-    weights_naive = jnp.ones(len(X))
-    ate_naive = estimate_ate(Y, A, weights_naive)
-    naive_error = ate_naive - ate_benchmark
-    naive_pct_error = (naive_error / ate_benchmark) * 100
+# %% [markdown]
+# ## Naive Estimate (No Adjustment)
 
-    print(f"  Naive ATE: ${ate_naive:.2f}")
-    print(f"  Error: ${naive_error:.2f} ({naive_pct_error:+.1f}%)")
+# %%
+print(f"\n{'='*70}")
+print("Naive Estimate (No Adjustment)")
+print(f"{'='*70}")
 
-    # Check initial balance
-    smd_naive = standardized_mean_difference(X, A, weights_naive)
-    print(f"\n  Covariate balance:")
-    print(f"    Max |SMD|: {jnp.abs(smd_naive).max():.3f}")
-    print(f"    (Values > 0.1 indicate imbalance)")
+weights_naive = jnp.ones(len(X))
+ate_naive = estimate_ate(Y, A, weights_naive)
+naive_error = ate_naive - ate_benchmark
+naive_pct_error = (naive_error / ate_benchmark) * 100
 
-    # Permutation weighting on observational data
-    print(f"\n{'='*70}")
-    print("Permutation Weighting")
-    print(f"{'='*70}")
+print(f"  Naive ATE: ${ate_naive:.2f}")
+print(f"  Error: ${naive_error:.2f} ({naive_pct_error:+.1f}%)")
 
-    print("\nFitting permutation weighter...")
-    weighter = PermutationWeighter(
-        discriminator=MLPDiscriminator(hidden_dims=[32,8]),
-        num_epochs=5000,
-        batch_size=len(X),
-        random_state=420,
-        regularization_strength=.01,
-    )
+# Check initial balance
+smd_naive = standardized_mean_difference(X, A, weights_naive)
+print("\n  Covariate balance:")
+print(f"    Max |SMD|: {jnp.abs(smd_naive).max():.3f}")
+print("    (Values > 0.1 indicate imbalance)")
 
-    weighter.fit(X, A)
-    weights_pw = weighter.predict(X, A)
+print("\n  Per-covariate imbalance:")
+for i, (name, smd_val) in enumerate(zip(feature_names, smd_naive)):
+    print(f"    {name:12s}: {smd_val:+.3f}")
 
-    # Estimate ATE
-    ate_pw = estimate_ate(Y, A, weights_pw)
-    pw_error = ate_pw - ate_benchmark
-    pw_pct_error = (pw_error / ate_benchmark) * 100
+# %% [markdown]
+# ## Permutation Weighting with Simple MLP
 
-    print(f"\n  Permutation-weighted ATE: ${ate_pw:.2f}")
-    print(f"  Error: ${pw_error:.2f} ({pw_pct_error:+.1f}%)")
+# %%
+print(f"\n{'='*70}")
+print("Permutation Weighting (Simple MLP)")
+print(f"{'='*70}")
 
-    # Weight diagnostics
-    print(f"\n  Weight diagnostics:")
-    print(f"    Range: [{weights_pw.min():.3f}, {weights_pw.max():.3f}]")
-    print(f"    Mean: {weights_pw.mean():.3f}")
-    print(f"    Std: {weights_pw.std():.3f}")
+# Fit with a simple MLP architecture
+mlp_simple = MLPDiscriminator(hidden_dims=[10])
+weighter_simple = PermutationWeighter(
+    discriminator=mlp_simple,
+    num_epochs=500,
+    batch_size=len(X),  # Full batch
+    random_state=42,
+)
 
-    ess = effective_sample_size(weights_pw)
-    ess_ratio = ess / len(weights_pw)
-    print(f"    ESS: {ess:.1f} / {len(weights_pw)} ({ess_ratio:.1%})")
+print("\nFitting weighter...")
+weighter_simple.fit(X, A)
+weights_simple = weighter_simple.predict(X, A)
 
-    # Check balance improvement
-    smd_pw = standardized_mean_difference(X, A, weights_pw)
-    max_smd_naive = jnp.abs(smd_naive).max()
-    max_smd_pw = jnp.abs(smd_pw).max()
-    balance_improvement = (1 - max_smd_pw / max_smd_naive) * 100
+# Estimate ATE
+ate_pw_simple = estimate_ate(Y, A, weights_simple)
+pw_error_simple = ate_pw_simple - ate_benchmark
+pw_pct_error_simple = (pw_error_simple / ate_benchmark) * 100
 
-    print(f"\n  Covariate balance:")
-    print(f"    Max |SMD| (naive): {max_smd_naive:.3f}")
-    print(f"    Max |SMD| (weighted): {max_smd_pw:.3f}")
-    print(f"    Improvement: {balance_improvement:.1f}%")
+print(f"\n  Permutation-weighted ATE: ${ate_pw_simple:.2f}")
+print(f"  Error: ${pw_error_simple:.2f} ({pw_pct_error_simple:+.1f}%)")
 
-    # Detailed balance by covariate
-    print(f"\n  Balance by covariate:")
-    print(f"    {'Covariate':<20} {'Naive |SMD|':<15} {'Weighted |SMD|':<15}")
-    print(f"    {'-'*50}")
-    for i, name in enumerate(feature_names):
-        smd_n = abs(float(smd_naive[i]))
-        smd_w = abs(float(smd_pw[i]))
-        print(f"    {name:<20} {smd_n:>13.3f}   {smd_w:>13.3f}")
+# Check balance improvement
+smd_pw_simple = standardized_mean_difference(X, A, weights_simple)
+print("\n  Covariate balance after weighting:")
+print(f"    Max |SMD|: {jnp.abs(smd_pw_simple).max():.3f}")
+balance_improvement = (
+    1 - jnp.abs(smd_pw_simple).max() / jnp.abs(smd_naive).max()
+) * 100
+print(f"    Balance improvement: {balance_improvement:.1f}%")
 
-    # Training diagnostics
-    assert weighter.history_ is not None
-    loss_history = weighter.history_["loss"]
-    print(f"\n  Training:")
-    print(f"    Initial loss: {loss_history[0]:.4f}")
-    print(f"    Final loss: {loss_history[-1]:.4f}")
-    print(f"    Epochs: {len(loss_history)}")
+# ESS
+ess_simple = effective_sample_size(weights_simple)
+ess_ratio_simple = ess_simple / len(weights_simple)
+print("\n  Effective sample size:")
+print(f"    ESS: {ess_simple:.0f} / {len(weights_simple)} ({ess_ratio_simple:.1%})")
 
-    # Summary comparison
-    print(f"\n{'='*70}")
-    print("Summary")
-    print(f"{'='*70}")
-    print(f"\n  {'Method':<30} {'ATE Estimate':<15} {'Error':<15} {'% Error':<10}")
-    print(f"  {'-'*70}")
-    print(
-        f"  {'Experimental Benchmark':<30} ${ate_benchmark:>13.2f}   "
-        f"{'--':<13}   {'--':<10}"
-    )
-    print(
-        f"  {'Naive (unadjusted)':<30} ${ate_naive:>13.2f}   "
-        f"${naive_error:>12.2f}   {naive_pct_error:>8.1f}%"
-    )
-    print(
-        f"  {'Permutation Weighting':<30} ${ate_pw:>13.2f}   "
-        f"${pw_error:>12.2f}   {pw_pct_error:>8.1f}%"
-    )
+# %% [markdown]
+# ## Permutation Weighting with Larger MLP
 
-    improvement_over_naive = abs(naive_error) - abs(pw_error)
-    print(f"\n  Improvement over naive: ${improvement_over_naive:.2f}")
+# %%
+print(f"\n{'='*70}")
+print("Permutation Weighting (Larger MLP)")
+print(f"{'='*70}")
 
-    print(f"\n{'='*70}")
-    print("Lalonde experiment completed successfully!")
-    print(f"{'='*70}")
+# Try a larger architecture
+mlp_large = MLPDiscriminator(hidden_dims=[32, 16])
+weighter_large = PermutationWeighter(
+    discriminator=mlp_large,
+    num_epochs=500,
+    batch_size=len(X),
+    random_state=42,
+)
 
+print("\nFitting weighter...")
+weighter_large.fit(X, A)
+weights_large = weighter_large.predict(X, A)
 
-if __name__ == "__main__":
-    main()
+# Estimate ATE
+ate_pw_large = estimate_ate(Y, A, weights_large)
+pw_error_large = ate_pw_large - ate_benchmark
+pw_pct_error_large = (pw_error_large / ate_benchmark) * 100
+
+print(f"\n  Permutation-weighted ATE: ${ate_pw_large:.2f}")
+print(f"  Error: ${pw_error_large:.2f} ({pw_pct_error_large:+.1f}%)")
+
+# Check balance
+smd_pw_large = standardized_mean_difference(X, A, weights_large)
+print("\n  Covariate balance after weighting:")
+print(f"    Max |SMD|: {jnp.abs(smd_pw_large).max():.3f}")
+balance_improvement_large = (
+    1 - jnp.abs(smd_pw_large).max() / jnp.abs(smd_naive).max()
+) * 100
+print(f"    Balance improvement: {balance_improvement_large:.1f}%")
+
+# ESS
+ess_large = effective_sample_size(weights_large)
+ess_ratio_large = ess_large / len(weights_large)
+print("\n  Effective sample size:")
+print(f"    ESS: {ess_large:.0f} / {len(weights_large)} ({ess_ratio_large:.1%})")
+
+# %% [markdown]
+# ## Summary Comparison
+
+# %%
+print(f"\n{'='*70}")
+print("Summary Comparison")
+print(f"{'='*70}")
+
+print(f"\n{'Method':<30} {'ATE Estimate':<15} {'Error':<15} {'% Error':<12}")
+print("-" * 72)
+print(f"{'Experimental (Benchmark)':<30} ${ate_benchmark:>12.2f}   {'---':>12}   {'---':>12}")
+print(
+    f"{'Naive (Unadjusted)':<30} ${ate_naive:>12.2f}  "
+    f"${naive_error:>12.2f}  {naive_pct_error:>10.1f}%"
+)
+print(
+    f"{'PW (Simple MLP)':<30} ${ate_pw_simple:>12.2f}  "
+    f"${pw_error_simple:>12.2f}  {pw_pct_error_simple:>10.1f}%"
+)
+print(
+    f"{'PW (Larger MLP)':<30} ${ate_pw_large:>12.2f}  "
+    f"${pw_error_large:>12.2f}  {pw_pct_error_large:>10.1f}%"
+)
+
+print("\n  Improvement over naive:")
+improvement_over_naive = abs(naive_error) - abs(pw_error_simple)
+print(f"\n  Improvement over naive: ${improvement_over_naive:.2f}")
+
+print(f"\n{'='*70}")
+print("✓ Lalonde experiment completed successfully!")
+elapsed_time = time.time() - start_time
+print(f"⏱  Total execution time: {elapsed_time:.2f} seconds")
+print(f"{'='*70}")

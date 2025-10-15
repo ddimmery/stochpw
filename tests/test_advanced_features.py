@@ -239,6 +239,7 @@ class TestEarlyStopping:
         weighter.fit(X, A)
 
         # Should have stopped before 100 epochs due to min_delta threshold
+        assert weighter.history_ is not None
         assert len(weighter.history_["loss"]) < 100
         assert weighter.params_ is not None
 
@@ -259,6 +260,7 @@ class TestEarlyStopping:
         weighter.fit(X, A)
 
         # Should stop early due to high min_delta threshold
+        assert weighter.history_ is not None
         assert len(weighter.history_["loss"]) < 100
         assert weighter.params_ is not None
 
@@ -277,6 +279,7 @@ class TestEarlyStopping:
         weighter.fit(X, A)
 
         # Should have run all epochs
+        assert weighter.history_ is not None
         assert len(weighter.history_["loss"]) == num_epochs
 
     def test_early_stopping_preserves_best_params(self):
@@ -323,6 +326,7 @@ class TestCombinedFeatures:
         assert weights.shape == (80,)
         assert jnp.all(jnp.isfinite(weights))
         assert jnp.all(weights > 0)
+        assert weighter.history_ is not None
         assert len(weighter.history_["loss"]) < 100
 
     def test_mlp_with_all_features(self):

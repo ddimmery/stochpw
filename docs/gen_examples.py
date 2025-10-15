@@ -1,4 +1,4 @@
-"""Generate markdown documentation from examples with plots."""
+"""Generate markdown documentation from examples using jupytext."""
 
 import os
 import subprocess
@@ -6,33 +6,13 @@ import sys
 from pathlib import Path
 
 
-def extract_key_code_from_file(content: str) -> str:
-    """Extract the key_code string variable from an example file."""
-    # Look for key_code = """...""" pattern
-    import re
-
-    # Match key_code = """...""" or key_code = '''...'''
-    pattern = r'key_code\s*=\s*"""(.*?)"""'
-    match = re.search(pattern, content, re.DOTALL)
-
-    if match:
-        return match.group(1).strip()
-
-    # Try single quotes
-    pattern = r"key_code\s*=\s*'''(.*?)'''"
-    match = re.search(pattern, content, re.DOTALL)
-
-    if match:
-        return match.group(1).strip()
-
-    return "# Key code not found in example file"
-
-
-def run_example_and_capture(example_path: Path, output_dir: Path, figures_dir: Path) -> dict:
+def run_example_and_capture(
+    example_path: Path, output_dir: Path, figures_dir: Path
+) -> dict | None:
     """
     Run an example script and capture its output.
 
-    Returns a dict with 'stdout' and any generated plots.
+    Returns a dict with 'stdout' and any generated plots, or None if failed.
     """
     # Change to output directory so plots are saved there
     original_dir = os.getcwd()
@@ -69,63 +49,80 @@ def run_example_and_capture(example_path: Path, output_dir: Path, figures_dir: P
         os.chdir(original_dir)
 
 
-def generate_markdown(example_name: str, output: dict, example_path: Path) -> str:
-    """Generate markdown content from example output."""
+def convert_with_jupytext(example_path: Path, output_md_path: Path) -> bool:
+    """
+    Convert Python file to markdown using jupytext.
 
-    # Read the example file
-    with open(example_path) as f:
-        content = f.read()
+    Args:
+        example_path: Path to the .py example file (in percent format)
+        output_md_path: Path where the .md file should be written
 
-    # Extract docstring if it exists
-    description = ""
-    if content.startswith('"""') or content.startswith("'''"):
-        quote = '"""' if content.startswith('"""') else "'''"
-        end_idx = content.find(quote, 3)
-        if end_idx > 0:
-            description = content[3:end_idx].strip()
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        result = subprocess.run(
+            ["jupytext", "--to", "md", str(example_path), "--output", str(output_md_path)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
 
-    # Extract key_code from the example file
-    key_code = extract_key_code_from_file(content)
+        if result.returncode != 0:
+            print(f"Error converting {example_path.name} with jupytext:")
+            print(result.stderr)
+            return False
 
-    # Start markdown
-    title = example_name.replace("_", " ").title()
-    md = f"# {title}\n\n"
+        return True
 
-    if description:
-        md += f"{description}\n\n"
+    except Exception as e:
+        print(f"Exception during jupytext conversion: {e}")
+        return False
 
-    # Add key code section
-    md += "## Code\n\n"
-    md += "```python\n"
-    md += key_code
-    md += "\n```\n\n"
 
-    # Add output in code block
-    md += "## Output\n\n"
-    md += "```\n"
-    md += output["stdout"]
-    md += "```\n\n"
+def add_output_and_plots_to_markdown(
+    md_path: Path, output: dict, example_path: Path
+) -> None:
+    """
+    Add output and plot sections to the generated markdown.
+
+    Args:
+        md_path: Path to the markdown file to modify
+        output: Dict with 'stdout' and 'plots' from running the example
+        example_path: Path to original example file (for GitHub link)
+    """
+    # Read the generated markdown
+    with open(md_path, "r") as f:
+        md_content = f.read()
+
+    # Add output section before the last heading or at the end
+    additions = []
+
+    # Add output
+    additions.append("\n## Output\n\n")
+    additions.append("```\n")
+    additions.append(output["stdout"])
+    additions.append("```\n\n")
 
     # Add plots if any
     if output["plots"]:
-        md += "## Visualizations\n\n"
+        additions.append("## Visualizations\n\n")
         for plot_name in output["plots"]:
             # Create a nicer caption from filename
             caption = plot_name.replace("_", " ").replace(".png", "").title()
-            md += f"### {caption}\n\n"
-            md += f"![{caption}](figures/{plot_name})\n\n"
+            additions.append(f"### {caption}\n\n")
+            additions.append(f"![{caption}](figures/{plot_name})\n\n")
 
-    # Add expandable full source code with GitHub link
+    # Add GitHub link at the end
     github_url = f"https://github.com/ddimmery/stochpw/blob/main/examples/{example_path.name}"
-    md += '??? example "Full source code"\n\n'
-    md += "    ```python\n"
-    # Indent each line of the full source
-    for line in content.split("\n"):
-        md += f"    {line}\n"
-    md += "    ```\n\n"
-    md += f"    [View on GitHub]({github_url}){{ .md-button }}\n"
+    additions.append(f"\n---\n\n[View source on GitHub]({github_url}){{ .md-button }}\n")
 
-    return md
+    # Append all additions
+    modified_content = md_content + "".join(additions)
+
+    # Write back
+    with open(md_path, "w") as f:
+        f.write(modified_content)
 
 
 def main():
@@ -145,7 +142,7 @@ def main():
     example_files = sorted(examples_dir.glob("*.py"))
 
     print("=" * 70)
-    print("Generating Example Documentation")
+    print("Generating Example Documentation with Jupytext")
     print("=" * 70)
 
     for example_file in example_files:
@@ -153,19 +150,25 @@ def main():
         print(f"\nProcessing: {example_name}")
         print("-" * 70)
 
-        # Run the example
+        # Convert to markdown with jupytext
+        md_file = examples_docs_dir / f"{example_name}.md"
+        success = convert_with_jupytext(example_file, md_file)
+
+        if not success:
+            print(f"⨯ Failed to convert {example_name} with jupytext")
+            continue
+
+        print("✓ Converted to markdown with jupytext")
+
+        # Run the example to get output
         output = run_example_and_capture(example_file, examples_docs_dir, figures_dir)
 
         if output is None:
             print(f"⨯ Failed to run {example_name}")
             continue
 
-        # Generate markdown
-        md_content = generate_markdown(example_name, output, example_file)
-
-        # Write markdown file
-        md_file = examples_docs_dir / f"{example_name}.md"
-        md_file.write_text(md_content)
+        # Add output and plots to the markdown
+        add_output_and_plots_to_markdown(md_file, output, example_file)
 
         print(f"✓ Generated {md_file.relative_to(repo_root)}")
         if output["plots"]:
@@ -211,6 +214,11 @@ def create_examples_index(examples_docs_dir: Path, example_files: list[Path]) ->
         "advanced_features": {
             "title": "Advanced Features",
             "description": "Alternative loss functions, regularization, and early stopping",
+            "category": "advanced",
+        },
+        "lalonde_experiment": {
+            "title": "Lalonde Experiment",
+            "description": "Real-world causal inference on the classic Lalonde dataset",
             "category": "advanced",
         },
     }

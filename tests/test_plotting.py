@@ -267,6 +267,7 @@ class TestIntegrationWithPermutationWeighter:
         # Test all plotting functions
         plot1 = plot_balance_diagnostics(X, A, weights)
         plot2 = plot_weight_distribution(weights)
+        assert weighter.history_ is not None
         plot3 = plot_training_history(weighter.history_)
 
         assert isinstance(plot1, ggplot)

@@ -30,7 +30,7 @@ class TestTrainingBatch:
         )
 
         with pytest.raises((AttributeError, ValueError, TypeError)):
-            batch.X = jnp.array([[2.0]])
+            batch.X = jnp.array([[2.0]])  # type: ignore[misc]
 
     def test_field_types(self):
         """Test field types."""
@@ -67,7 +67,7 @@ class TestWeightedData:
         data = WeightedData(X=jnp.array([[1.0]]), A=jnp.array([[0.0]]), weights=jnp.array([1.0]))
 
         with pytest.raises((AttributeError, ValueError, TypeError)):
-            data.weights = jnp.array([2.0])
+            data.weights = jnp.array([2.0])  # type: ignore[misc]
 
 
 class TestTrainingState:
@@ -143,4 +143,4 @@ class TestTrainingStepResult:
         result = TrainingStepResult(state=state, loss=0.5)
 
         with pytest.raises((AttributeError, ValueError, TypeError)):
-            result.loss = 0.3
+            result.loss = 0.3  # type: ignore[misc]

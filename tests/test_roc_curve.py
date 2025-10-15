@@ -70,9 +70,8 @@ class TestROCCurve:
     def test_roc_curve_eta_inference(self):
         """Test that eta is correctly inferred from weights."""
         # eta should be w / (1 + w)
-        weights = jnp.array([1.0, 4.0, 0.25])
-        weights / (1.0 + weights)
         # For w=1: eta=0.5, for w=4: eta=0.8, for w=0.25: eta=0.2
+        weights = jnp.array([1.0, 4.0, 0.25])
 
         labels = jnp.array([1.0, 1.0, 0.0])
 

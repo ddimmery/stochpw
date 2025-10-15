@@ -186,6 +186,7 @@ class TestPermutationWeighter:
         weighter.fit(X, A)
 
         # Loss should generally decrease
+        assert weighter.history_ is not None
         assert weighter.history_["loss"][-1] < weighter.history_["loss"][0]
 
     def test_balance_improvement(self):
@@ -286,6 +287,7 @@ class TestPermutationWeighter:
         weighter = PermutationWeighter(num_epochs=200, batch_size=10, random_state=42)
         weighter.fit(X, A)
 
+        assert weighter.history_ is not None
         assert len(weighter.history_["loss"]) == 200
 
     def test_small_batch_size(self):
@@ -357,8 +359,9 @@ class TestPermutationWeighter:
         X = np.random.randn(15, 2)
         A = np.random.choice([0.0, 1.0], size=15)
 
-        for activation in ["relu", "tanh", "elu", "sigmoid"]:
-            mlp_disc = MLPDiscriminator(hidden_dims=[16], activation=activation)
+        activations: list = ["relu", "tanh", "elu", "sigmoid"]
+        for activation in activations:
+            mlp_disc = MLPDiscriminator(hidden_dims=[16], activation=activation)  # type: ignore[arg-type]
             weighter = PermutationWeighter(
                 discriminator=mlp_disc,
                 num_epochs=5,
@@ -394,5 +397,7 @@ class TestPermutationWeighter:
         weighter_mlp.fit(X, A)
 
         # Both should have decreasing loss
+        assert weighter_linear.history_ is not None
+        assert weighter_mlp.history_ is not None
         assert weighter_linear.history_["loss"][-1] < weighter_linear.history_["loss"][0]
         assert weighter_mlp.history_["loss"][-1] < weighter_mlp.history_["loss"][0]

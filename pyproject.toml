@@ -34,6 +34,7 @@ mkdocs-coverage = "^1.1.0"
 ruff = "^0.5.7"
 pyright = "^1.1.406"
 plotnine = "^0.15.0"
+jupytext = "^1.17.3"
 
 [build-system]
 requires = ["poetry-core"]

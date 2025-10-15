@@ -214,7 +214,7 @@ class TestActivationFunctions:
     def test_unknown_activation_raises_error(self):
         """Test that unknown activation raises ValueError."""
         with pytest.raises(ValueError, match="Unknown activation"):
-            _get_activation("unknown")
+            _get_activation("unknown")  # type: ignore[arg-type]
 
 
 class TestMLPDiscriminator:
@@ -282,10 +282,10 @@ class TestMLPDiscriminator:
 
     def test_different_activations(self):
         """Test MLP with different activation functions."""
-        activations = ["relu", "tanh", "elu", "sigmoid"]
+        activations: list = ["relu", "tanh", "elu", "sigmoid"]
 
         for activation in activations:
-            discriminator = MLPDiscriminator(hidden_dims=[8], activation=activation)
+            discriminator = MLPDiscriminator(hidden_dims=[8], activation=activation)  # type: ignore[arg-type]
             params = discriminator.init_params(jax.random.PRNGKey(0), d_a=1, d_x=2)
 
             a = jnp.array([[1.0]])
