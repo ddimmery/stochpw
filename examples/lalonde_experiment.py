@@ -64,14 +64,27 @@ def load_lalonde_nsw():
             - feature_names: List of covariate names
             - ate_benchmark: Experimental ATE estimate from RCT ($1,794)
     """
-    # Find the data file
+    # Find the data file - try multiple locations to handle different execution contexts
     current_dir = Path(__file__).parent
-    data_file = current_dir.parent / "background" / "lalonde_nsw.csv"
 
-    if not data_file.exists():
+    # Try several possible locations
+    possible_paths = [
+        current_dir / "nsw_data.csv",  # Same directory as script
+        current_dir.parent / "background" / "lalonde_nsw.csv",  # Original location
+        current_dir.parent / "examples" / "nsw_data.csv",  # When run from project root
+    ]
+
+    data_file = None
+    for path in possible_paths:
+        if path.exists():
+            data_file = path
+            break
+
+    if data_file is None:
         raise FileNotFoundError(
-            f"Data file not found at {data_file}\n"
-            "Please ensure lalonde_nsw.csv is in the background/ directory."
+            "Data file not found. Tried:\n" +
+            "\n".join(f"  - {p}" for p in possible_paths) +
+            "\n\nPlease ensure nsw_data.csv is in the examples/ directory."
         )
 
     # Load data

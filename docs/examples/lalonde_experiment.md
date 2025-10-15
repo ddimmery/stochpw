@@ -64,14 +64,27 @@ def load_lalonde_nsw():
             - feature_names: List of covariate names
             - ate_benchmark: Experimental ATE estimate from RCT ($1,794)
     """
-    # Find the data file
+    # Find the data file - try multiple locations to handle different execution contexts
     current_dir = Path(__file__).parent
-    data_file = current_dir.parent / "background" / "lalonde_nsw.csv"
 
-    if not data_file.exists():
+    # Try several possible locations
+    possible_paths = [
+        current_dir / "nsw_data.csv",  # Same directory as script
+        current_dir.parent / "background" / "lalonde_nsw.csv",  # Original location
+        current_dir.parent / "examples" / "nsw_data.csv",  # When run from project root
+    ]
+
+    data_file = None
+    for path in possible_paths:
+        if path.exists():
+            data_file = path
+            break
+
+    if data_file is None:
         raise FileNotFoundError(
-            f"Data file not found at {data_file}\n"
-            "Please ensure lalonde_nsw.csv is in the background/ directory."
+            "Data file not found. Tried:\n" +
+            "\n".join(f"  - {p}" for p in possible_paths) +
+            "\n\nPlease ensure nsw_data.csv is in the examples/ directory."
         )
 
     # Load data
@@ -325,6 +338,102 @@ elapsed_time = time.time() - start_time
 print(f"⏱  Total execution time: {elapsed_time:.2f} seconds")
 print(f"{'='*70}")
 ```
+
+## Output
+
+```
+======================================================================
+Lalonde Experiment: Permutation Weighting for ATE Estimation
+======================================================================
+
+Loading Lalonde NSW observational dataset...
+
+Dataset statistics:
+  Total samples: 458
+  Treated: 177
+  Control: 281
+  Covariates: 8
+  Covariate names: age, education, black, hispanic, married, nodegree, RE74, RE75
+
+======================================================================
+Experimental Benchmark (Ground Truth)
+======================================================================
+  Experimental ATE: $1794.00
+  (From the original randomized controlled trial)
+
+======================================================================
+Naive Estimate (No Adjustment)
+======================================================================
+  Naive ATE: $1.03
+  Error: $-1792.97 (-99.9%)
+
+  Covariate balance:
+    Max |SMD|: 0.899
+    (Values > 0.1 indicate imbalance)
+
+  Per-covariate imbalance:
+    age         : +0.323
+    education   : +0.279
+    black       : -0.087
+    hispanic    : -0.220
+    married     : -0.086
+    nodegree    : -0.884
+    RE74        : -0.899
+    RE75        : +0.693
+
+======================================================================
+Permutation Weighting (Simple MLP)
+======================================================================
+
+Fitting weighter...
+
+  Permutation-weighted ATE: $0.68
+  Error: $-1793.32 (-100.0%)
+
+  Covariate balance after weighting:
+    Max |SMD|: 0.936
+    Balance improvement: -4.1%
+
+  Effective sample size:
+    ESS: 123 / 458 (26.9%)
+
+======================================================================
+Permutation Weighting (Larger MLP)
+======================================================================
+
+Fitting weighter...
+
+  Permutation-weighted ATE: $-10.20
+  Error: $-1804.20 (-100.6%)
+
+  Covariate balance after weighting:
+    Max |SMD|: 2.393
+    Balance improvement: -166.3%
+
+  Effective sample size:
+    ESS: 25 / 458 (5.4%)
+
+======================================================================
+Summary Comparison
+======================================================================
+
+Method                         ATE Estimate    Error           % Error     
+------------------------------------------------------------------------
+Experimental (Benchmark)       $     1794.00            ---            ---
+Naive (Unadjusted)             $        1.03  $    -1792.97       -99.9%
+PW (Simple MLP)                $        0.68  $    -1793.32      -100.0%
+PW (Larger MLP)                $      -10.20  $    -1804.20      -100.6%
+
+  Improvement over naive:
+
+  Improvement over naive: $-0.34
+
+======================================================================
+✓ Lalonde experiment completed successfully!
+⏱  Total execution time: 17.21 seconds
+======================================================================
+```
+
 
 ---
 

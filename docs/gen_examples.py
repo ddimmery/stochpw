@@ -80,24 +80,42 @@ def convert_with_jupytext(example_path: Path, output_md_path: Path) -> bool:
         return False
 
 
-def add_github_link_to_markdown(md_path: Path, example_path: Path) -> None:
+def add_github_link_to_markdown(
+    md_path: Path, example_path: Path, add_note: bool = False
+) -> None:
     """
-    Add GitHub link to the markdown file.
+    Add GitHub link to the markdown file, optionally with a note about execution.
 
     Args:
         md_path: Path to the markdown file to modify
         example_path: Path to original example file (for GitHub link)
+        add_note: If True, add a note about the example not being executed
     """
     # Read the generated markdown
     with open(md_path, "r") as f:
         md_content = f.read()
 
+    additions = []
+
+    # Add note about missing output if requested
+    if add_note:
+        additions.append("\n## Note\n\n")
+        additions.append(
+            "!!! info \"Dataset Required\"\n"
+            "    This example requires the Lalonde NSW dataset to run. "
+            "The code structure is shown above, but output is not available without the dataset.\n\n"
+            "    To run this example, you'll need to:\n\n"
+            "    1. Download the Lalonde NSW dataset (available from various causal inference repositories)\n"
+            "    2. Place it as `background/lalonde_nsw.csv` in the project root\n"
+            "    3. Run the example with `python examples/lalonde_experiment.py`\n\n"
+        )
+
     # Add GitHub link at the end
     github_url = f"https://github.com/ddimmery/stochpw/blob/main/examples/{example_path.name}"
-    addition = f"\n---\n\n[View source on GitHub]({github_url}){{ .md-button }}\n"
+    additions.append(f"\n---\n\n[View source on GitHub]({github_url}){{ .md-button }}\n")
 
-    # Append
-    modified_content = md_content + addition
+    # Append all additions
+    modified_content = md_content + "".join(additions)
 
     # Write back
     with open(md_path, "w") as f:
@@ -189,8 +207,8 @@ def main():
 
         if output is None:
             print(f"⚠ Failed to run {example_name}, adding markdown without output")
-            # Still add GitHub link even if execution failed
-            add_github_link_to_markdown(md_file, example_file)
+            # Still add GitHub link with a note about missing execution
+            add_github_link_to_markdown(md_file, example_file, add_note=True)
         else:
             # Add output and plots to the markdown
             add_output_and_plots_to_markdown(md_file, output, example_file)
