@@ -70,7 +70,6 @@ def load_lalonde_nsw():
     # Try several possible locations
     possible_paths = [
         current_dir / "nsw_data.csv",  # Same directory as script
-        current_dir.parent / "background" / "lalonde_nsw.csv",  # Original location
         current_dir.parent / "examples" / "nsw_data.csv",  # When run from project root
     ]
 
@@ -91,9 +90,9 @@ def load_lalonde_nsw():
     data = np.genfromtxt(data_file, delimiter=",", skip_header=1)
 
     # Extract treatment, outcome, and covariates
-    A = data[:, 0:1]  # Treatment indicator (first column)
-    Y = data[:, 1:2]  # RE78 earnings (second column)
-    X = data[:, 2:]  # All other columns are covariates
+    A = data[:, 0]  # Treatment indicator (first column)
+    Y = data[:, -1]  # RE78 earnings (last column)
+    X = data[:, 1:9]  # All other columns are covariates
 
     # Feature names (from dataset documentation)
     feature_names = [
@@ -225,7 +224,7 @@ print("Permutation Weighting (Simple MLP)")
 print(f"{'='*70}")
 
 # Fit with a simple MLP architecture
-mlp_simple = MLPDiscriminator(hidden_dims=[10])
+mlp_simple = MLPDiscriminator(hidden_dims=[3])
 weighter_simple = PermutationWeighter(
     discriminator=mlp_simple,
     num_epochs=500,
@@ -364,22 +363,22 @@ Experimental Benchmark (Ground Truth)
 ======================================================================
 Naive Estimate (No Adjustment)
 ======================================================================
-  Naive ATE: $1.03
-  Error: $-1792.97 (-99.9%)
+  Naive ATE: $4224.48
+  Error: $2430.48 (+135.5%)
 
   Covariate balance:
     Max |SMD|: 0.899
     (Values > 0.1 indicate imbalance)
 
   Per-covariate imbalance:
-    age         : +0.323
-    education   : +0.279
-    black       : -0.087
-    hispanic    : -0.220
-    married     : -0.086
-    nodegree    : -0.884
-    RE74        : -0.899
-    RE75        : +0.693
+    age         : +0.175
+    education   : +0.323
+    black       : +0.279
+    hispanic    : -0.087
+    married     : -0.220
+    nodegree    : -0.086
+    RE74        : -0.884
+    RE75        : -0.899
 
 ======================================================================
 Permutation Weighting (Simple MLP)
@@ -387,15 +386,15 @@ Permutation Weighting (Simple MLP)
 
 Fitting weighter...
 
-  Permutation-weighted ATE: $0.68
-  Error: $-1793.32 (-100.0%)
+  Permutation-weighted ATE: $5232.60
+  Error: $3438.60 (+191.7%)
 
   Covariate balance after weighting:
-    Max |SMD|: 0.936
-    Balance improvement: -4.1%
+    Max |SMD|: 0.767
+    Balance improvement: 14.6%
 
   Effective sample size:
-    ESS: 123 / 458 (26.9%)
+    ESS: 240 / 458 (52.4%)
 
 ======================================================================
 Permutation Weighting (Larger MLP)
@@ -403,15 +402,15 @@ Permutation Weighting (Larger MLP)
 
 Fitting weighter...
 
-  Permutation-weighted ATE: $-10.20
-  Error: $-1804.20 (-100.6%)
+  Permutation-weighted ATE: $1734.75
+  Error: $-59.25 (-3.3%)
 
   Covariate balance after weighting:
-    Max |SMD|: 2.393
-    Balance improvement: -166.3%
+    Max |SMD|: 30.765
+    Balance improvement: -3323.7%
 
   Effective sample size:
-    ESS: 25 / 458 (5.4%)
+    ESS: 1 / 458 (0.2%)
 
 ======================================================================
 Summary Comparison
@@ -420,17 +419,17 @@ Summary Comparison
 Method                         ATE Estimate    Error           % Error     
 ------------------------------------------------------------------------
 Experimental (Benchmark)       $     1794.00            ---            ---
-Naive (Unadjusted)             $        1.03  $    -1792.97       -99.9%
-PW (Simple MLP)                $        0.68  $    -1793.32      -100.0%
-PW (Larger MLP)                $      -10.20  $    -1804.20      -100.6%
+Naive (Unadjusted)             $     4224.48  $     2430.48       135.5%
+PW (Simple MLP)                $     5232.60  $     3438.60       191.7%
+PW (Larger MLP)                $     1734.75  $      -59.25        -3.3%
 
   Improvement over naive:
 
-  Improvement over naive: $-0.34
+  Improvement over naive: $-1008.12
 
 ======================================================================
 ✓ Lalonde experiment completed successfully!
-⏱  Total execution time: 17.21 seconds
+⏱  Total execution time: 17.38 seconds
 ======================================================================
 ```
 

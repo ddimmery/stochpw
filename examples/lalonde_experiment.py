@@ -70,7 +70,6 @@ def load_lalonde_nsw():
     # Try several possible locations
     possible_paths = [
         current_dir / "nsw_data.csv",  # Same directory as script
-        current_dir.parent / "background" / "lalonde_nsw.csv",  # Original location
         current_dir.parent / "examples" / "nsw_data.csv",  # When run from project root
     ]
 
@@ -91,9 +90,9 @@ def load_lalonde_nsw():
     data = np.genfromtxt(data_file, delimiter=",", skip_header=1)
 
     # Extract treatment, outcome, and covariates
-    A = data[:, 0:1]  # Treatment indicator (first column)
-    Y = data[:, 1:2]  # RE78 earnings (second column)
-    X = data[:, 2:]  # All other columns are covariates
+    A = data[:, 0]  # Treatment indicator (first column)
+    Y = data[:, -1]  # RE78 earnings (last column)
+    X = data[:, 1:9]  # All other columns are covariates
 
     # Feature names (from dataset documentation)
     feature_names = [
@@ -225,7 +224,7 @@ print("Permutation Weighting (Simple MLP)")
 print(f"{'='*70}")
 
 # Fit with a simple MLP architecture
-mlp_simple = MLPDiscriminator(hidden_dims=[10])
+mlp_simple = MLPDiscriminator(hidden_dims=[3])
 weighter_simple = PermutationWeighter(
     discriminator=mlp_simple,
     num_epochs=500,

@@ -407,7 +407,7 @@ Visualization files saved to current directory
 
 ======================================================================
 Demo Complete!
-Total execution time: 12.58 seconds
+Total execution time: 12.00 seconds
 ======================================================================
 ```
 

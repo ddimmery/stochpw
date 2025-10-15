@@ -163,7 +163,7 @@ Training:
 
 ============================================================
 ✓ Example completed successfully!
-⏱  Total execution time: 5.80 seconds
+⏱  Total execution time: 5.69 seconds
 ============================================================
 ```
 

@@ -180,7 +180,7 @@ MLP (tanh)                     0.538           0.059         89.0%
 
 ======================================================================
 ✓ Example completed successfully!
-⏱  Total execution time: 34.36 seconds
+⏱  Total execution time: 34.40 seconds
 ======================================================================
 ```
 
