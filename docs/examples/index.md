@@ -24,3 +24,7 @@ Complete diagnostic workflow with ROC curves, calibration, and balance reports
 
 Alternative loss functions, regularization, and early stopping
 
+### [Lalonde Experiment](lalonde_experiment.md)
+
+Real-world causal inference on the classic Lalonde dataset
+

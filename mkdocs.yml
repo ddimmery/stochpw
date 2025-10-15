@@ -6,11 +6,12 @@ nav:
   - Home: index.md
   - About: about.md
   - Examples: 
-    - examples/index.md
-    - examples/basic_usage.md
-    - examples/mlp_discriminator.md
-    - examples/diagnostics_demo.md
-    - examples/advanced_features.md
+    - Index: examples/index.md
+    - Basic Usage: examples/basic_usage.md
+    - MLP Discriminator: examples/mlp_discriminator.md
+    - Diagnostics: examples/diagnostics_demo.md
+    - Advanced Features: examples/advanced_features.md
+    - Lalonde Experiment: examples/lalonde_experiment.md
   - API Reference: reference/
   - Development:
     - Contributing: contributing.md

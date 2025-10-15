@@ -80,6 +80,30 @@ def convert_with_jupytext(example_path: Path, output_md_path: Path) -> bool:
         return False
 
 
+def add_github_link_to_markdown(md_path: Path, example_path: Path) -> None:
+    """
+    Add GitHub link to the markdown file.
+
+    Args:
+        md_path: Path to the markdown file to modify
+        example_path: Path to original example file (for GitHub link)
+    """
+    # Read the generated markdown
+    with open(md_path, "r") as f:
+        md_content = f.read()
+
+    # Add GitHub link at the end
+    github_url = f"https://github.com/ddimmery/stochpw/blob/main/examples/{example_path.name}"
+    addition = f"\n---\n\n[View source on GitHub]({github_url}){{ .md-button }}\n"
+
+    # Append
+    modified_content = md_content + addition
+
+    # Write back
+    with open(md_path, "w") as f:
+        f.write(modified_content)
+
+
 def add_output_and_plots_to_markdown(
     md_path: Path, output: dict, example_path: Path
 ) -> None:
@@ -164,14 +188,15 @@ def main():
         output = run_example_and_capture(example_file, examples_docs_dir, figures_dir)
 
         if output is None:
-            print(f"⨯ Failed to run {example_name}")
-            continue
-
-        # Add output and plots to the markdown
-        add_output_and_plots_to_markdown(md_file, output, example_file)
+            print(f"⚠ Failed to run {example_name}, adding markdown without output")
+            # Still add GitHub link even if execution failed
+            add_github_link_to_markdown(md_file, example_file)
+        else:
+            # Add output and plots to the markdown
+            add_output_and_plots_to_markdown(md_file, output, example_file)
 
         print(f"✓ Generated {md_file.relative_to(repo_root)}")
-        if output["plots"]:
+        if output and output["plots"]:
             print(f"  └─ {len(output['plots'])} plot(s) saved to figures/")
 
     # Create index for examples
