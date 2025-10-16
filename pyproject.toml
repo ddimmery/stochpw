@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "stochpw"
-version = "0.2.0"
+version = "0.3.0"
 description = "Stochastic gradient descent implementation of permutation weighting"
 authors = ["Drew Dimmery <pypi@ddimmery.com>"]
 license = "Apache-2.0"

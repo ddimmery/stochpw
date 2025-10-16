@@ -1,7 +1,11 @@
 # stochpw - Permutation Weighting for Causal Inference
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![JAX](https://img.shields.io/badge/JAX-0.4+-green.svg)](https://github.com/google/jax)
+[![PyPI version](https://img.shields.io/pypi/v/stochpw.svg)](https://pypi.org/project/stochpw/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/ddimmery/stochpw/workflows/CI/badge.svg)](https://github.com/ddimmery/stochpw/actions)
+[![codecov](https://codecov.io/gh/ddimmery/stochpw/branch/main/graph/badge.svg)](https://codecov.io/gh/ddimmery/stochpw)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 **Permutation weighting** learns importance weights for causal inference by training a discriminator to distinguish between observed treatment-covariate pairs and artificially permuted pairs.
 

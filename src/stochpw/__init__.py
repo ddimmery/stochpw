@@ -9,7 +9,7 @@ The package provides both a high-level sklearn-style API and low-level composabl
 components for integration into larger causal inference models.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 # Main API
 from .core import NotFittedError, PermutationWeighter

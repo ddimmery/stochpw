@@ -249,7 +249,7 @@ See `pyproject.toml` for complete list and version constraints.
 - `docs/contributing.md` - Contribution guidelines
 - Original paper: Arbour, Dimmery, & Sondhi (2021) - Permutation Weighting (ICML)
 
-## Current Status (v0.2.0)
+## Current Status (v0.3.0)
 
 **Production ready:** Core permutation weighting with linear/MLP discriminators, sklearn-style API, alternative losses, regularization, early stopping, comprehensive diagnostics, visualization, 99%+ test coverage.
 

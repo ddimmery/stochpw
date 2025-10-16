@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-01-16
+
+### Added
+
+- **Advanced training features**:
+  - Alternative loss functions: `exponential_loss` and `brier_loss` for different optimization objectives
+  - Regularization penalties: `entropy_penalty` and `lp_weight_penalty` to control weight distribution
+  - Early stopping with configurable patience and minimum delta for automatic training termination
+- **Enhanced diagnostics**:
+  - `calibration_curve()`: Assess discriminator calibration quality
+  - `weight_statistics()`: Comprehensive weight distribution metrics (mean, std, min, max, entropy, ESS ratio)
+  - `balance_report()`: Unified diagnostic report combining balance metrics, weight statistics, and sample information
+  - `roc_curve()`: ROC curve data for discriminator performance evaluation
+  - `standardized_mean_difference_se()`: Standard errors for SMD estimates with confidence intervals
+- **Visualization tools** in `plotting` module:
+  - `plot_balance_diagnostics()`: SMD comparison plots with confidence intervals
+  - `plot_weight_distribution()`: Weight histograms with ESS annotations
+  - `plot_training_history()`: Loss curves over training epochs
+  - `plot_calibration_curve()`: Calibration assessment plots
+  - `plot_roc_curve()`: ROC curves with AUC metrics
+- **Comprehensive examples**:
+  - `examples/advanced_features.py`: Alternative losses, regularization, and early stopping
+  - `examples/diagnostics_demo.py`: Full diagnostic workflow with visualizations
+  - `examples/lalonde_experiment.py`: Real-world causal inference on Lalonde dataset
+- **Developer tools**:
+  - `tests/conftest.py`: Pytest configuration with `--no-jit` flag for faster test iteration
+  - JIT-specific tests marked with `@pytest.mark.jit` (auto-skipped with `--no-jit`)
+  - Jupyter notebook support for examples via jupytext + nbconvert pipeline
+
+### Changed
+
+- **Examples now in jupytext percent format**: All `.py` examples can be converted to executable Jupyter notebooks
+- **Documentation generation**: `docs/gen_examples.py` now executes examples as notebooks and converts to markdown
+- **Test performance**: Added profiling and configuration options to optimize test execution
+
+### Improved
+
+- **Test coverage**: Maintained 99%+ coverage with comprehensive tests for all new features
+- **Documentation**: Enhanced examples with real-world use cases and complete diagnostic workflows
+- **Code quality**: Added pytest markers for slow tests and JIT-specific tests
+- **Type annotations**: Full type hints across all new features
+
 ## [0.2.0] - 2025-01-06
 
 ### Added

@@ -25,5 +25,10 @@ jobs:
           cache-dependency-path: pyproject.toml
       - run: poetry install
       - name: Test Coverage
-        run: make coverage
-      - run: PYTHONPATH=src poetry run mkdocs gh-deploy --force
+        run: PYTHONPATH=src poetry run mkdocs gh-deploy --force
+      - uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true # optional (default = false)
+          files: ./coverage1.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true # optional (default = false)
