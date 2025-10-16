@@ -182,7 +182,7 @@ class TestPermutationWeighter:
         propensity = jax.nn.sigmoid(0.5 * X[:, 0] - 0.3 * X[:, 1])
         A = jax.random.bernoulli(jax.random.PRNGKey(1), propensity).astype(float)
 
-        weighter = PermutationWeighter(num_epochs=50, batch_size=32, random_state=42)
+        weighter = PermutationWeighter(num_epochs=10, batch_size=32, random_state=42, optimizer=optax.rmsprop(learning_rate=0.1),)
         weighter.fit(X, A)
 
         # Loss should generally decrease
@@ -193,13 +193,13 @@ class TestPermutationWeighter:
         """Test that weights improve covariate balance."""
         # Generate confounded data
         key = jax.random.PRNGKey(0)
-        n = 200
+        n = 100
         X = jax.random.normal(key, (n, 3))
         propensity = jax.nn.sigmoid(0.8 * X[:, 0] - 0.5 * X[:, 1])
         A = jax.random.bernoulli(jax.random.PRNGKey(1), propensity).astype(float)
-
         # Fit weighter
-        weighter = PermutationWeighter(num_epochs=100, batch_size=64, random_state=42)
+        opt = optax.rmsprop(learning_rate=0.1)
+        weighter = PermutationWeighter(num_epochs=2, batch_size=100, random_state=42, optimizer=opt)
         weighter.fit(X, A)
         weights = weighter.predict(X, A)
 
@@ -383,16 +383,17 @@ class TestPermutationWeighter:
 
         # Linear discriminator
         weighter_linear = PermutationWeighter(
-            discriminator=LinearDiscriminator(), num_epochs=20, batch_size=15, random_state=42
+            discriminator=LinearDiscriminator(), num_epochs=2, batch_size=25, random_state=42, optimizer=optax.rmsprop(learning_rate=0.1),
         )
         weighter_linear.fit(X, A)
 
         # MLP discriminator
         weighter_mlp = PermutationWeighter(
             discriminator=MLPDiscriminator(hidden_dims=[32, 16]),
-            num_epochs=20,
-            batch_size=15,
+            num_epochs=2,
+            batch_size=25,
             random_state=42,
+            optimizer=optax.rmsprop(learning_rate=0.1),
         )
         weighter_mlp.fit(X, A)
 

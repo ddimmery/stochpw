@@ -1,5 +1,7 @@
 """Tests for stochpw.weights module."""
 
+import pytest
+
 import jax
 import jax.numpy as jnp
 from stochpw.models import LinearDiscriminator
@@ -212,6 +214,7 @@ class TestExtractWeights:
         assert weights.shape == (5,)
         assert jnp.all(weights > 0)
 
+    @pytest.mark.jit
     def test_jit_compilation(self):
         """Test that extract_weights can be JIT compiled."""
         d_a, d_x = 1, 2

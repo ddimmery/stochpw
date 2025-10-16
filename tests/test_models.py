@@ -145,6 +145,7 @@ class TestLinearDiscriminator:
         assert jnp.allclose(logits_batch[0], logits_0[0])
         assert jnp.allclose(logits_batch[1], logits_1[0])
 
+    @pytest.mark.jit
     def test_jit_compilation(self):
         """Test that apply can be JIT compiled."""
         discriminator = LinearDiscriminator()
@@ -355,6 +356,7 @@ class TestMLPDiscriminator:
         assert jnp.allclose(logits_batch[0], logits_0[0], atol=1e-6)
         assert jnp.allclose(logits_batch[1], logits_1[0], atol=1e-6)
 
+    @pytest.mark.jit
     def test_jit_compilation(self):
         """Test that MLP apply can be JIT compiled."""
         discriminator = MLPDiscriminator(hidden_dims=[8])

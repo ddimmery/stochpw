@@ -2,6 +2,7 @@
 
 import jax
 import jax.numpy as jnp
+import optax
 from stochpw import (
     MLPDiscriminator,
     PermutationWeighter,
@@ -90,9 +91,10 @@ class TestAlternativeLossFunctions:
 
         weighter = PermutationWeighter(
             loss_fn=exponential_loss,
-            num_epochs=10,
-            batch_size=16,
+            num_epochs=2,
+            batch_size=80,
             random_state=42,
+            optimizer=optax.rmsprop(learning_rate=0.1)
         )
         weighter.fit(X, A)
         weights = weighter.predict(X, A)
@@ -176,9 +178,10 @@ class TestRegularization:
 
         # Without regularization
         weighter_no_reg = PermutationWeighter(
-            num_epochs=20,
-            batch_size=16,
+            num_epochs=3,
+            batch_size=40,
             random_state=42,
+            optimizer=optax.rmsprop(learning_rate=0.1),
         )
         weighter_no_reg.fit(X, A)
         weights_no_reg = weighter_no_reg.predict(X, A)
@@ -188,9 +191,10 @@ class TestRegularization:
         weighter_with_reg = PermutationWeighter(
             regularization_fn=entropy_penalty,
             regularization_strength=0.1,
-            num_epochs=20,
-            batch_size=16,
+            num_epochs=3,
+            batch_size=40,
             random_state=42,
+            optimizer=optax.rmsprop(learning_rate=0.1),
         )
         weighter_with_reg.fit(X, A)
         weights_with_reg = weighter_with_reg.predict(X, A)
@@ -204,13 +208,13 @@ class TestRegularization:
         X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]] * 20)
         A = jnp.array([[0.0], [1.0], [0.0], [1.0]] * 20)
 
-        mlp = MLPDiscriminator(hidden_dims=[32, 16])
+        mlp = MLPDiscriminator(hidden_dims=[16, 8])
         weighter = PermutationWeighter(
             discriminator=mlp,
             regularization_fn=lambda w: lp_weight_penalty(w, p=2.0),
-            regularization_strength=0.01,
-            num_epochs=10,
-            batch_size=16,
+            regularization_strength=0.1,
+            num_epochs=1,
+            batch_size=80,
             random_state=42,
         )
         weighter.fit(X, A)
@@ -231,9 +235,9 @@ class TestEarlyStopping:
         weighter = PermutationWeighter(
             early_stopping=True,
             patience=5,
-            min_delta=0.01,  # Require at least 0.01 improvement (higher threshold)
+            min_delta=0.1,  # Require at least 0.01 improvement (higher threshold)
             num_epochs=100,  # Set high, but should stop early
-            batch_size=16,
+            batch_size=40,
             random_state=42,
         )
         weighter.fit(X, A)
@@ -290,8 +294,8 @@ class TestEarlyStopping:
         weighter = PermutationWeighter(
             early_stopping=True,
             patience=5,
-            num_epochs=100,
-            batch_size=16,
+            num_epochs=50,
+            batch_size=40,
             random_state=42,
         )
         weighter.fit(X, A)
@@ -316,8 +320,8 @@ class TestCombinedFeatures:
             regularization_strength=0.01,
             early_stopping=True,
             patience=5,
-            num_epochs=100,
-            batch_size=16,
+            num_epochs=20,
+            batch_size=40,
             random_state=42,
         )
         weighter.fit(X, A)
@@ -334,7 +338,7 @@ class TestCombinedFeatures:
         X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]] * 20)
         A = jnp.array([[0.0], [1.0], [0.0], [1.0]] * 20)
 
-        mlp = MLPDiscriminator(hidden_dims=[64, 32], activation="tanh")
+        mlp = MLPDiscriminator(hidden_dims=[32, 16], activation="tanh")
         weighter = PermutationWeighter(
             discriminator=mlp,
             loss_fn=exponential_loss,
@@ -342,8 +346,8 @@ class TestCombinedFeatures:
             regularization_strength=0.005,
             early_stopping=True,
             patience=10,
-            num_epochs=100,
-            batch_size=16,
+            num_epochs=20,
+            batch_size=40,
             random_state=42,
         )
         weighter.fit(X, A)

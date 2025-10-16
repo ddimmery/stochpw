@@ -1,5 +1,7 @@
 """Tests for stochpw.diagnostics module."""
 
+import pytest
+
 import jax.numpy as jnp
 from stochpw.diagnostics import (
     effective_sample_size,
@@ -56,6 +58,7 @@ class TestEffectiveSampleSize:
 
         assert ess <= len(weights)
 
+    @pytest.mark.jit
     def test_jit_compilation(self):
         """Test that ESS can be JIT compiled."""
         import jax

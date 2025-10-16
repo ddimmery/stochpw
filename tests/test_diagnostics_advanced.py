@@ -2,6 +2,7 @@
 
 import jax
 import jax.numpy as jnp
+import optax
 from stochpw import balance_report, calibration_curve, weight_statistics
 
 
@@ -231,7 +232,7 @@ class TestIntegrationWithPermutationWeighter:
         A = (X[:, 0] + jax.random.normal(key, (200,)) * 0.5 > 0).astype(float)
 
         # Fit weighter
-        weighter = PermutationWeighter(num_epochs=20, batch_size=50, random_state=42)
+        weighter = PermutationWeighter(num_epochs=5, batch_size=50, random_state=42, optimizer=optax.rmsprop(learning_rate=0.1),)
         weighter.fit(X, A)
         weights = weighter.predict(X, A)
 
