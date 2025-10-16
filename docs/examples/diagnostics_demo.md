@@ -1,17 +1,3 @@
----
-jupyter:
-  jupytext:
-    text_representation:
-      extension: .md
-      format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.17.3
-  kernelspec:
-    display_name: Python 3
-    language: python
-    name: python3
----
-
 # Comprehensive Diagnostics Demo
 
 This example demonstrates comprehensive diagnostics in stochpw:
@@ -21,6 +7,7 @@ This example demonstrates comprehensive diagnostics in stochpw:
 3. ROC curves (most important discriminator diagnostic)
 4. Calibration curves
 5. Visualization with plotnine
+
 
 ```python
 import time
@@ -45,6 +32,7 @@ from stochpw.plotting import (
 ```
 
 ## Generate Data with Confounding
+
 
 ```python
 def generate_confounded_data(n=1000, seed=42):
@@ -73,7 +61,18 @@ print(f"\nGenerated data: X.shape={X.shape}, A.shape={A.shape}")
 print(f"Treatment balance: {jnp.mean(A):.2%} treated")
 ```
 
+    ======================================================================
+    Comprehensive Diagnostics Demo
+    ======================================================================
+
+
+    
+    Generated data: X.shape=(1000, 5), A.shape=(1000,)
+    Treatment balance: 42.00% treated
+
+
 ## Step 1: Initial Balance Assessment
+
 
 ```python
 print("\n" + "=" * 70)
@@ -92,7 +91,25 @@ print(f"Number of features: {initial_report['n_features']}")
 print(f"Number of samples: {initial_report['n_samples']}")
 ```
 
+    
+    ======================================================================
+    Step 1: Initial Balance Assessment
+    ======================================================================
+
+
+    
+    Initial max SMD: 1.1620
+    Initial mean SMD: 0.3523
+
+
+    
+    Treatment type: binary
+    Number of features: 5
+    Number of samples: 1000
+
+
 ## Step 2: Fit Permutation Weighter
+
 
 ```python
 print("\n" + "=" * 70)
@@ -115,7 +132,19 @@ print(f"\nTraining completed in {len(weighter.history_['loss'])} epochs")
 print(f"Final training loss: {weighter.history_['loss'][-1]:.4f}")
 ```
 
+    
+    ======================================================================
+    Step 2: Fit Permutation Weighter
+    ======================================================================
+
+
+    
+    Training completed in 50 epochs
+    Final training loss: 0.6504
+
+
 ## Step 3: Balance After Weighting
+
 
 ```python
 print("\n" + "=" * 70)
@@ -135,7 +164,21 @@ print(f"\nEffective Sample Size: {final_report['ess']:.0f} / {final_report['n_sa
 print(f"ESS Ratio: {final_report['ess_ratio']:.2%}")
 ```
 
+    
+    ======================================================================
+    Step 3: Balance After Weighting
+    ======================================================================
+    
+    Final max SMD: 0.2745
+    Final mean SMD: 0.0849
+    SMD improvement: 76.4%
+    
+    Effective Sample Size: 733 / 1000
+    ESS Ratio: 73.28%
+
+
 ## Step 4: Weight Distribution Analysis
+
 
 ```python
 print("\n" + "=" * 70)
@@ -155,9 +198,26 @@ print(f"  Entropy: {w_stats['entropy']:.3f}")
 print(f"  N extreme (>10x mean): {w_stats['n_extreme']}")
 ```
 
+    
+    ======================================================================
+    Step 4: Weight Distribution Analysis
+    ======================================================================
+    
+    Weight Statistics:
+      Mean: 1.015
+      Std: 0.613
+      Min: 0.095
+      Max: 5.158
+      CV (std/mean): 0.604
+      Max/Min ratio: 54.3
+      Entropy: 6.750
+      N extreme (>10x mean): 0
+
+
 ## Step 5: ROC Curve Analysis
 
 ROC curve is the most important discriminator diagnostic.
+
 
 ```python
 print("\n" + "=" * 70)
@@ -199,7 +259,23 @@ else:
     print("Poor discriminator quality - consider more epochs or larger model")
 ```
 
+    
+    ======================================================================
+    Step 5: ROC Curve Analysis
+    ======================================================================
+
+
+    
+    ROC AUC: 0.6652
+    
+    Interpretation: AUC measures discriminator's ability to distinguish observed from permuted.
+      AUC = 0.5: Random guessing (poor discriminator)
+      AUC = 1.0: Perfect discrimination
+      Current AUC = 0.6652: Poor discriminator quality - consider more epochs or larger model
+
+
 ## Step 6: Discriminator Calibration
+
 
 ```python
 print("\n" + "=" * 70)
@@ -233,7 +309,30 @@ for pred, obs, count in zip(bin_centers, true_freqs, counts):
         print(f"{pred:>10.3f}   {obs:>10.3f}   {int(count):>8}   {error:>8.3f}")
 ```
 
+    
+    ======================================================================
+    Step 6: Discriminator Calibration
+    ======================================================================
+
+
+    
+    Calibration Analysis (10 bins):
+    Predicted    Observed     Count      Error     
+    --------------------------------------------
+         0.050        0.000          1      0.050
+         0.150        0.231         26      0.081
+         0.250        0.331        148      0.081
+         0.350        0.344        299      0.006
+         0.450        0.437        492      0.013
+         0.550        0.495        477      0.055
+         0.650        0.614        345      0.036
+         0.750        0.812        149      0.062
+         0.850        0.918         61      0.068
+         0.950        1.000          2      0.050
+
+
 ## Step 7: Before/After Comparison
+
 
 ```python
 print("\n" + "=" * 70)
@@ -263,7 +362,21 @@ print(
 )
 ```
 
+    
+    ======================================================================
+    Step 7: Before/After Comparison
+    ======================================================================
+    
+    Metric                         Before          After           Improvement    
+    ---------------------------------------------------------------------------
+    Max SMD                               1.1620         0.2745          76.4%
+    Mean SMD                              0.3523         0.0849          75.9%
+    ESS                                     1000            733         -26.7%
+    ESS Ratio                            100.00%         73.28%                -
+
+
 ## Step 8: Create Visualizations
+
 
 ```python
 print("\n" + "=" * 70)
@@ -301,133 +414,42 @@ print(f"Total execution time: {elapsed_time:.2f} seconds")
 print("=" * 70)
 ```
 
-## Output
+    
+    ======================================================================
+    Step 8: Creating Visualizations
+    ======================================================================
 
-```
-======================================================================
-Comprehensive Diagnostics Demo
-======================================================================
 
-Generated data: X.shape=(1000, 5), A.shape=(1000,)
-Treatment balance: 42.00% treated
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:630: PlotnineWarning: Saving 8 x 8 in image.
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:631: PlotnineWarning: Filename: roc_curve.png
 
-======================================================================
-Step 1: Initial Balance Assessment
-======================================================================
 
-Initial max SMD: 1.1620
-Initial mean SMD: 0.3523
+    
+    ✓ Saved: roc_curve.png (MOST IMPORTANT DIAGNOSTIC)
 
-Treatment type: binary
-Number of features: 5
-Number of samples: 1000
 
-======================================================================
-Step 2: Fit Permutation Weighter
-======================================================================
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:630: PlotnineWarning: Saving 10 x 6 in image.
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:631: PlotnineWarning: Filename: balance_diagnostics.png
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:630: PlotnineWarning: Saving 8 x 6 in image.
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:631: PlotnineWarning: Filename: weight_distribution.png
 
-Training completed in 50 epochs
-Final training loss: 0.6504
 
-======================================================================
-Step 3: Balance After Weighting
-======================================================================
+    ✓ Saved: balance_diagnostics.png (with 95% confidence intervals)
+    ✓ Saved: weight_distribution.png
 
-Final max SMD: 0.2745
-Final mean SMD: 0.0849
-SMD improvement: 76.4%
 
-Effective Sample Size: 733 / 1000
-ESS Ratio: 73.28%
+    ✓ Saved: calibration_curve.png
+    
+    Visualization files saved to current directory
+    
+    ======================================================================
+    Demo Complete!
+    Total execution time: 8.52 seconds
+    ======================================================================
 
-======================================================================
-Step 4: Weight Distribution Analysis
-======================================================================
 
-Weight Statistics:
-  Mean: 1.015
-  Std: 0.613
-  Min: 0.095
-  Max: 5.158
-  CV (std/mean): 0.604
-  Max/Min ratio: 54.3
-  Entropy: 6.750
-  N extreme (>10x mean): 0
-
-======================================================================
-Step 5: ROC Curve Analysis
-======================================================================
-
-ROC AUC: 0.6652
-
-Interpretation: AUC measures discriminator's ability to distinguish observed from permuted.
-  AUC = 0.5: Random guessing (poor discriminator)
-  AUC = 1.0: Perfect discrimination
-  Current AUC = 0.6652: Poor discriminator quality - consider more epochs or larger model
-
-======================================================================
-Step 6: Discriminator Calibration
-======================================================================
-
-Calibration Analysis (10 bins):
-Predicted    Observed     Count      Error     
---------------------------------------------
-     0.050        0.000          1      0.050
-     0.150        0.231         26      0.081
-     0.250        0.331        148      0.081
-     0.350        0.344        299      0.006
-     0.450        0.437        492      0.013
-     0.550        0.495        477      0.055
-     0.650        0.614        345      0.036
-     0.750        0.812        149      0.062
-     0.850        0.918         61      0.068
-     0.950        1.000          2      0.050
-
-======================================================================
-Step 7: Before/After Comparison
-======================================================================
-
-Metric                         Before          After           Improvement    
----------------------------------------------------------------------------
-Max SMD                               1.1620         0.2745          76.4%
-Mean SMD                              0.3523         0.0849          75.9%
-ESS                                     1000            733         -26.7%
-ESS Ratio                            100.00%         73.28%                -
-
-======================================================================
-Step 8: Creating Visualizations
-======================================================================
-
-✓ Saved: roc_curve.png (MOST IMPORTANT DIAGNOSTIC)
-✓ Saved: balance_diagnostics.png (with 95% confidence intervals)
-✓ Saved: weight_distribution.png
-✓ Saved: calibration_curve.png
-
-Visualization files saved to current directory
-
-======================================================================
-Demo Complete!
-Total execution time: 12.00 seconds
-======================================================================
-```
-
-## Visualizations
-
-### Weight Distribution
-
-![Weight Distribution](figures/weight_distribution.png)
-
-### Calibration Curve
-
-![Calibration Curve](figures/calibration_curve.png)
-
-### Balance Diagnostics
-
-![Balance Diagnostics](figures/balance_diagnostics.png)
-
-### Roc Curve
-
-![Roc Curve](figures/roc_curve.png)
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:630: PlotnineWarning: Saving 8 x 8 in image.
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:631: PlotnineWarning: Filename: calibration_curve.png
 
 
 ---

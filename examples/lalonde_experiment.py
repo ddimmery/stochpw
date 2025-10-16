@@ -6,9 +6,9 @@
 #       format_name: percent
 #       format_version: '1.3'
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: stochpw-py3.12
 #     language: python
-#     name: python3
+#     name: stochpw
 # ---
 
 # %% [markdown]
@@ -65,12 +65,18 @@ def load_lalonde_nsw():
             - ate_benchmark: Experimental ATE estimate from RCT ($1,794)
     """
     # Find the data file - try multiple locations to handle different execution contexts
-    current_dir = Path(__file__).parent
+    # In notebooks, __file__ may not be defined, so use current working directory
+    try:
+        current_dir = Path(__file__).parent
+    except NameError:
+        # Running in notebook context, use current working directory
+        current_dir = Path.cwd()
 
     # Try several possible locations
     possible_paths = [
-        current_dir / "nsw_data.csv",  # Same directory as script
-        current_dir.parent / "examples" / "nsw_data.csv",  # When run from project root
+        current_dir / "nsw_data.csv",  # Same directory as script or notebook
+        current_dir / "examples" / "nsw_data.csv",  # When run from project root
+        Path("examples") / "nsw_data.csv",  # Relative to project root
     ]
 
     data_file = None

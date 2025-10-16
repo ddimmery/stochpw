@@ -1,17 +1,3 @@
----
-jupyter:
-  jupytext:
-    text_representation:
-      extension: .md
-      format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.17.3
-  kernelspec:
-    display_name: Python 3
-    language: python
-    name: python3
----
-
 # MLP Discriminator Example
 
 This example demonstrates using MLP (multilayer perceptron) discriminators
@@ -22,6 +8,7 @@ We compare:
 - MLP with different architectures
 - MLP with different activation functions
 
+
 ```python
 import time
 
@@ -31,6 +18,7 @@ from stochpw import MLPDiscriminator, PermutationWeighter, standardized_mean_dif
 ```
 
 ## Generate Data with Complex Nonlinear Confounding
+
 
 ```python
 start_time = time.time()
@@ -59,7 +47,16 @@ print(f"\nData: {n} samples, {X.shape[1]} covariates")
 print(f"Treatment: {A.mean():.1%} treated (nonlinear confounding)")
 ```
 
+    ======================================================================
+    MLP Discriminator Example
+    ======================================================================
+    
+    Data: 500 samples, 5 covariates
+    Treatment: 62.4% treated (nonlinear confounding)
+
+
 ## Compare Linear vs MLP Discriminators
+
 
 ```python
 print("\n" + "=" * 70)
@@ -105,7 +102,54 @@ for name, discriminator in configs:
     results.append((name, max_smd_unw, max_smd_w, improvement))
 ```
 
+    
+    ======================================================================
+    Comparing Linear vs MLP Discriminators
+    ======================================================================
+    
+    Linear:
+    ----------------------------------------
+
+
+      Max |SMD| (unweighted): 0.538
+      Max |SMD| (weighted):   0.318
+      Balance improvement:    40.8%
+    
+    MLP (default):
+    ----------------------------------------
+
+
+      Max |SMD| (unweighted): 0.538
+      Max |SMD| (weighted):   0.107
+      Balance improvement:    80.2%
+    
+    MLP (small):
+    ----------------------------------------
+
+
+      Max |SMD| (unweighted): 0.538
+      Max |SMD| (weighted):   0.055
+      Balance improvement:    89.8%
+    
+    MLP (large):
+    ----------------------------------------
+
+
+      Max |SMD| (unweighted): 0.538
+      Max |SMD| (weighted):   0.297
+      Balance improvement:    44.8%
+    
+    MLP (tanh):
+    ----------------------------------------
+
+
+      Max |SMD| (unweighted): 0.538
+      Max |SMD| (weighted):   0.059
+      Balance improvement:    89.0%
+
+
 ## Summary Comparison
+
 
 ```python
 print("\n" + "=" * 70)
@@ -123,66 +167,22 @@ print(f"⏱  Total execution time: {elapsed_time:.2f} seconds")
 print("=" * 70)
 ```
 
-## Output
-
-```
-======================================================================
-MLP Discriminator Example
-======================================================================
-
-Data: 500 samples, 5 covariates
-Treatment: 62.4% treated (nonlinear confounding)
-
-======================================================================
-Comparing Linear vs MLP Discriminators
-======================================================================
-
-Linear:
-----------------------------------------
-  Max |SMD| (unweighted): 0.538
-  Max |SMD| (weighted):   0.318
-  Balance improvement:    40.8%
-
-MLP (default):
-----------------------------------------
-  Max |SMD| (unweighted): 0.538
-  Max |SMD| (weighted):   0.107
-  Balance improvement:    80.2%
-
-MLP (small):
-----------------------------------------
-  Max |SMD| (unweighted): 0.538
-  Max |SMD| (weighted):   0.055
-  Balance improvement:    89.8%
-
-MLP (large):
-----------------------------------------
-  Max |SMD| (unweighted): 0.538
-  Max |SMD| (weighted):   0.297
-  Balance improvement:    44.8%
-
-MLP (tanh):
-----------------------------------------
-  Max |SMD| (unweighted): 0.538
-  Max |SMD| (weighted):   0.059
-  Balance improvement:    89.0%
-
-======================================================================
-Summary Comparison
-======================================================================
-Model                Unweighted SMD     Weighted SMD    Improvement 
-----------------------------------------------------------------------
-Linear                         0.538           0.318         40.8%
-MLP (default)                  0.538           0.107         80.2%
-MLP (small)                    0.538           0.055         89.8%
-MLP (large)                    0.538           0.297         44.8%
-MLP (tanh)                     0.538           0.059         89.0%
-
-======================================================================
-✓ Example completed successfully!
-⏱  Total execution time: 34.40 seconds
-======================================================================
-```
+    
+    ======================================================================
+    Summary Comparison
+    ======================================================================
+    Model                Unweighted SMD     Weighted SMD    Improvement 
+    ----------------------------------------------------------------------
+    Linear                         0.538           0.318         40.8%
+    MLP (default)                  0.538           0.107         80.2%
+    MLP (small)                    0.538           0.055         89.8%
+    MLP (large)                    0.538           0.297         44.8%
+    MLP (tanh)                     0.538           0.059         89.0%
+    
+    ======================================================================
+    ✓ Example completed successfully!
+    ⏱  Total execution time: 24.60 seconds
+    ======================================================================
 
 
 ---

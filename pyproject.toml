@@ -35,6 +35,8 @@ ruff = "^0.5.7"
 pyright = "^1.1.406"
 plotnine = "^0.15.0"
 jupytext = "^1.17.3"
+nbconvert = "^7.16.6"
+jupyter = "^1.1.1"
 
 [build-system]
 requires = ["poetry-core"]

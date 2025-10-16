@@ -1,68 +1,24 @@
-"""Generate markdown documentation from examples using jupytext."""
+"""Generate markdown documentation from examples using jupytext and nbconvert."""
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 
-def run_example_and_capture(
-    example_path: Path, output_dir: Path, figures_dir: Path
-) -> dict | None:
+def convert_py_to_ipynb(example_path: Path, output_ipynb_path: Path) -> bool:
     """
-    Run an example script and capture its output.
-
-    Returns a dict with 'stdout' and any generated plots, or None if failed.
-    """
-    # Change to output directory so plots are saved there
-    original_dir = os.getcwd()
-    os.chdir(output_dir)
-
-    try:
-        # Run the example
-        result = subprocess.run(
-            [sys.executable, str(example_path)],
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-
-        if result.returncode != 0:
-            print(f"Error running {example_path.name}:")
-            print(result.stderr)
-            return None
-
-        output = {"stdout": result.stdout, "plots": []}
-
-        # Find any generated PNG files
-        png_files = list(Path(".").glob("*.png"))
-
-        # Move plots to figures directory
-        for png_file in png_files:
-            dest = figures_dir / png_file.name
-            png_file.rename(dest)
-            output["plots"].append(dest.name)
-
-        return output
-
-    finally:
-        os.chdir(original_dir)
-
-
-def convert_with_jupytext(example_path: Path, output_md_path: Path) -> bool:
-    """
-    Convert Python file to markdown using jupytext.
+    Convert Python file to Jupyter notebook using jupytext.
 
     Args:
         example_path: Path to the .py example file (in percent format)
-        output_md_path: Path where the .md file should be written
+        output_ipynb_path: Path where the .ipynb file should be written
 
     Returns:
         True if successful, False otherwise
     """
     try:
         result = subprocess.run(
-            ["jupytext", "--to", "md", str(example_path), "--output", str(output_md_path)],
+            ["jupytext", "--to", "ipynb", str(example_path), "--output", str(output_ipynb_path)],
             capture_output=True,
             text=True,
             timeout=30,
@@ -80,87 +36,86 @@ def convert_with_jupytext(example_path: Path, output_md_path: Path) -> bool:
         return False
 
 
-def add_github_link_to_markdown(
-    md_path: Path, example_path: Path, add_note: bool = False
-) -> None:
+def execute_and_convert_notebook(
+    ipynb_path: Path, output_md_path: Path, figures_dir: Path
+) -> bool:
     """
-    Add GitHub link to the markdown file, optionally with a note about execution.
+    Execute notebook and convert to markdown using nbconvert.
 
     Args:
-        md_path: Path to the markdown file to modify
-        example_path: Path to original example file (for GitHub link)
-        add_note: If True, add a note about the example not being executed
+        ipynb_path: Path to the .ipynb file
+        output_md_path: Path where the .md file should be written
+        figures_dir: Directory where figures should be saved
+
+    Returns:
+        True if successful, False otherwise
     """
-    # Read the generated markdown
-    with open(md_path, "r") as f:
-        md_content = f.read()
+    # Change to the examples directory so relative paths work
+    original_dir = os.getcwd()
+    work_dir = ipynb_path.parent
 
-    additions = []
+    try:
+        os.chdir(work_dir)
 
-    # Add note about missing output if requested
-    if add_note:
-        additions.append("\n## Note\n\n")
-        additions.append(
-            "!!! info \"Dataset Required\"\n"
-            "    This example requires the Lalonde NSW dataset to run. "
-            "The code structure is shown above, but output is not available without the dataset.\n\n"
-            "    To run this example, you'll need to:\n\n"
-            "    1. Download the Lalonde NSW dataset (available from various causal inference repositories)\n"
-            "    2. Place it as `background/lalonde_nsw.csv` in the project root\n"
-            "    3. Run the example with `python examples/lalonde_experiment.py`\n\n"
+        # Execute and convert the notebook to markdown
+        # --execute: Execute the notebook before converting
+        # --to markdown: Convert to markdown format
+        # --output: Output file path
+        # --ExtractOutputPreprocessor.enabled=True: Extract images
+        # --NbConvertApp.output_files_dir: Directory for extracted images
+        result = subprocess.run(
+            [
+                "jupyter",
+                "nbconvert",
+                "--to",
+                "markdown",
+                "--execute",
+                "--output",
+                str(output_md_path.absolute()),
+                "--ExtractOutputPreprocessor.enabled=True",
+                f"--NbConvertApp.output_files_dir={figures_dir.absolute()}",
+                str(ipynb_path.name),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
 
-    # Add GitHub link at the end
-    github_url = f"https://github.com/ddimmery/stochpw/blob/main/examples/{example_path.name}"
-    additions.append(f"\n---\n\n[View source on GitHub]({github_url}){{ .md-button }}\n")
+        if result.returncode != 0:
+            print(f"Error executing/converting {ipynb_path.name}:")
+            print(result.stderr)
+            return False
 
-    # Append all additions
-    modified_content = md_content + "".join(additions)
+        return True
 
-    # Write back
-    with open(md_path, "w") as f:
-        f.write(modified_content)
+    except subprocess.TimeoutExpired:
+        print(f"Timeout executing {ipynb_path.name}")
+        return False
+    except Exception as e:
+        print(f"Exception during nbconvert: {e}")
+        return False
+    finally:
+        os.chdir(original_dir)
 
 
-def add_output_and_plots_to_markdown(
-    md_path: Path, output: dict, example_path: Path
-) -> None:
+def add_github_link_to_markdown(md_path: Path, example_path: Path) -> None:
     """
-    Add output and plot sections to the generated markdown.
+    Add GitHub link to the markdown file.
 
     Args:
         md_path: Path to the markdown file to modify
-        output: Dict with 'stdout' and 'plots' from running the example
         example_path: Path to original example file (for GitHub link)
     """
     # Read the generated markdown
     with open(md_path, "r") as f:
         md_content = f.read()
 
-    # Add output section before the last heading or at the end
-    additions = []
-
-    # Add output
-    additions.append("\n## Output\n\n")
-    additions.append("```\n")
-    additions.append(output["stdout"])
-    additions.append("```\n\n")
-
-    # Add plots if any
-    if output["plots"]:
-        additions.append("## Visualizations\n\n")
-        for plot_name in output["plots"]:
-            # Create a nicer caption from filename
-            caption = plot_name.replace("_", " ").replace(".png", "").title()
-            additions.append(f"### {caption}\n\n")
-            additions.append(f"![{caption}](figures/{plot_name})\n\n")
-
     # Add GitHub link at the end
     github_url = f"https://github.com/ddimmery/stochpw/blob/main/examples/{example_path.name}"
-    additions.append(f"\n---\n\n[View source on GitHub]({github_url}){{ .md-button }}\n")
+    additions = f"\n---\n\n[View source on GitHub]({github_url}){{ .md-button }}\n"
 
-    # Append all additions
-    modified_content = md_content + "".join(additions)
+    # Append
+    modified_content = md_content + additions
 
     # Write back
     with open(md_path, "w") as f:
@@ -184,38 +139,54 @@ def main():
     example_files = sorted(examples_dir.glob("*.py"))
 
     print("=" * 70)
-    print("Generating Example Documentation with Jupytext")
+    print("Generating Example Documentation with Jupytext + NBConvert")
     print("=" * 70)
+
+    # Track generated notebooks to clean up
+    notebooks_to_cleanup = []
 
     for example_file in example_files:
         example_name = example_file.stem
         print(f"\nProcessing: {example_name}")
         print("-" * 70)
 
-        # Convert to markdown with jupytext
-        md_file = examples_docs_dir / f"{example_name}.md"
-        success = convert_with_jupytext(example_file, md_file)
+        # Step 1: Convert .py to .ipynb using jupytext
+        ipynb_file = examples_dir / f"{example_name}.ipynb"
+        success = convert_py_to_ipynb(example_file, ipynb_file)
 
         if not success:
-            print(f"⨯ Failed to convert {example_name} with jupytext")
+            print(f"⨯ Failed to convert {example_name} to notebook")
             continue
 
-        print("✓ Converted to markdown with jupytext")
+        print("✓ Converted to notebook with jupytext")
+        notebooks_to_cleanup.append(ipynb_file)
 
-        # Run the example to get output
-        output = run_example_and_capture(example_file, examples_docs_dir, figures_dir)
+        # Step 2: Execute notebook and convert to markdown with nbconvert
+        md_file = examples_docs_dir / f"{example_name}.md"
+        success = execute_and_convert_notebook(ipynb_file, md_file, figures_dir)
 
-        if output is None:
-            print(f"⚠ Failed to run {example_name}, adding markdown without output")
-            # Still add GitHub link with a note about missing execution
-            add_github_link_to_markdown(md_file, example_file, add_note=True)
-        else:
-            # Add output and plots to the markdown
-            add_output_and_plots_to_markdown(md_file, output, example_file)
+        if not success:
+            print(f"⨯ Failed to execute/convert {example_name}")
+            continue
+
+        print("✓ Executed and converted to markdown with nbconvert")
+
+        # Step 3: Add GitHub link to markdown
+        add_github_link_to_markdown(md_file, example_file)
 
         print(f"✓ Generated {md_file.relative_to(repo_root)}")
-        if output and output["plots"]:
-            print(f"  └─ {len(output['plots'])} plot(s) saved to figures/")
+
+        # Check if figures were generated
+        figure_files = list(figures_dir.glob(f"{example_name}_files/*"))
+        if figure_files:
+            print(f"  └─ {len(figure_files)} plot(s) saved to figures/")
+
+    # Clean up generated notebooks
+    print("\nCleaning up temporary notebook files...")
+    for notebook in notebooks_to_cleanup:
+        if notebook.exists():
+            notebook.unlink()
+            print(f"  ✓ Removed {notebook.name}")
 
     # Create index for examples
     create_examples_index(examples_docs_dir, example_files)

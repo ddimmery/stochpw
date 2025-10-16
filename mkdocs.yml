@@ -26,9 +26,9 @@ theme:
     text: Fira Sans
     code: Fira Code
   icon:
-    logo: material/dice-multiple
+    logo: material/scale-balance
     repo: fontawesome/brands/github
-  favicon: material/dice-multiple
+  favicon: material/scale-balance
   features:
   - content.code.annotate
   - navigation.tabs

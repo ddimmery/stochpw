@@ -1,17 +1,3 @@
----
-jupyter:
-  jupytext:
-    text_representation:
-      extension: .md
-      format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.17.3
-  kernelspec:
-    display_name: Python 3
-    language: python
-    name: python3
----
-
 # Advanced Features Demo
 
 This example demonstrates advanced features in stochpw:
@@ -19,6 +5,7 @@ This example demonstrates advanced features in stochpw:
 1. Alternative loss functions (exponential, Brier)
 2. Weight-based regularization (entropy penalty)
 3. Early stopping
+
 
 ```python
 import time
@@ -36,6 +23,7 @@ from stochpw import (
 ```
 
 ## Generate Synthetic Data
+
 
 ```python
 def generate_data(n=1000, seed=42):
@@ -67,7 +55,20 @@ initial_smd = standardized_mean_difference(X, A, jnp.ones(X.shape[0]))
 print(f"Initial SMD: {jnp.max(jnp.abs(initial_smd)):.4f}")
 ```
 
+    ============================================================
+    Advanced Features Demo
+    ============================================================
+
+
+    
+    Generated data: X.shape=(1000, 5), A.shape=(1000, 1)
+
+
+    Initial SMD: 0.9872
+
+
 ## 1. Default Configuration (Logistic Loss)
+
 
 ```python
 print("\n" + "=" * 60)
@@ -89,7 +90,19 @@ print(f"Training epochs: {len(weighter_default.history_['loss'])}")
 print(f"Final loss: {weighter_default.history_['loss'][-1]:.4f}")
 ```
 
+    
+    ============================================================
+    1. Default Configuration (Logistic Loss)
+    ============================================================
+
+
+    Final SMD: 0.5034
+    Training epochs: 50
+    Final loss: 0.7007
+
+
 ## 2. Alternative Loss: Exponential Loss
+
 
 ```python
 print("\n" + "=" * 60)
@@ -111,7 +124,18 @@ assert weighter_exp.history_ is not None
 print(f"Final loss: {weighter_exp.history_['loss'][-1]:.4f}")
 ```
 
+    
+    ============================================================
+    2. Alternative Loss: Exponential Loss
+    ============================================================
+
+
+    Final SMD: 0.6182
+    Final loss: 1.1258
+
+
 ## 3. Alternative Loss: Brier Score
+
 
 ```python
 print("\n" + "=" * 60)
@@ -133,7 +157,18 @@ assert weighter_brier.history_ is not None
 print(f"Final loss: {weighter_brier.history_['loss'][-1]:.4f}")
 ```
 
+    
+    ============================================================
+    3. Alternative Loss: Brier Score
+    ============================================================
+
+
+    Final SMD: 0.4442
+    Final loss: 0.2504
+
+
 ## 4. With Entropy Regularization
+
 
 ```python
 print("\n" + "=" * 60)
@@ -174,7 +209,20 @@ print(f"Weight entropy (without regularization): {entropy_without_reg:.2f}")
 print("Higher entropy = more uniform weights (better ESS)")
 ```
 
+    
+    ============================================================
+    4. With Entropy Regularization
+    ============================================================
+
+
+    Final SMD: 0.1521
+    Weight entropy (with regularization): 6.77
+    Weight entropy (without regularization): 6.75
+    Higher entropy = more uniform weights (better ESS)
+
+
 ## 5. With Early Stopping
+
 
 ```python
 print("\n" + "=" * 60)
@@ -199,7 +247,19 @@ print(f"Stopped at epoch: {len(weighter_early.history_['loss'])}/200")
 print(f"Epochs saved: {200 - len(weighter_early.history_['loss'])}")
 ```
 
+    
+    ============================================================
+    5. With Early Stopping
+    ============================================================
+
+
+    Final SMD: 0.4851
+    Stopped at epoch: 77/200
+    Epochs saved: 123
+
+
 ## 6. All Features Combined
+
 
 ```python
 print("\n" + "=" * 60)
@@ -232,7 +292,20 @@ entropy_combined = -entropy_penalty(weights_combined)
 print(f"Weight entropy: {entropy_combined:.2f}")
 ```
 
+    
+    ============================================================
+    6. All Features Combined
+    ============================================================
+
+
+    Final SMD: 0.2193
+    Stopped at epoch: 35/200
+    Final loss: 0.2107
+    Weight entropy: 6.80
+
+
 ## Summary
+
 
 ```python
 print("\n" + "=" * 60)
@@ -253,74 +326,22 @@ print(f"⏱  Total execution time: {elapsed_time:.2f} seconds")
 print("=" * 60)
 ```
 
-## Output
-
-```
-============================================================
-Advanced Features Demo
-============================================================
-
-Generated data: X.shape=(1000, 5), A.shape=(1000, 1)
-Initial SMD: 0.9872
-
-============================================================
-1. Default Configuration (Logistic Loss)
-============================================================
-Final SMD: 0.5034
-Training epochs: 50
-Final loss: 0.7007
-
-============================================================
-2. Alternative Loss: Exponential Loss
-============================================================
-Final SMD: 0.6182
-Final loss: 1.1258
-
-============================================================
-3. Alternative Loss: Brier Score
-============================================================
-Final SMD: 0.4442
-Final loss: 0.2504
-
-============================================================
-4. With Entropy Regularization
-============================================================
-Final SMD: 0.1521
-Weight entropy (with regularization): 6.77
-Weight entropy (without regularization): 6.75
-Higher entropy = more uniform weights (better ESS)
-
-============================================================
-5. With Early Stopping
-============================================================
-Final SMD: 0.4851
-Stopped at epoch: 77/200
-Epochs saved: 123
-
-============================================================
-6. All Features Combined
-============================================================
-Final SMD: 0.2193
-Stopped at epoch: 35/200
-Final loss: 0.2107
-Weight entropy: 6.80
-
-============================================================
-Summary: Balance Improvement
-============================================================
-Initial:                    0.9872
-Default (logistic):         0.5034
-Exponential loss:           0.6182
-Brier loss:                 0.4442
-With entropy regularization: 0.1521
-With early stopping:        0.4851
-All features combined:      0.2193
-
-============================================================
-✓ Example completed successfully!
-⏱  Total execution time: 33.75 seconds
-============================================================
-```
+    
+    ============================================================
+    Summary: Balance Improvement
+    ============================================================
+    Initial:                    0.9872
+    Default (logistic):         0.5034
+    Exponential loss:           0.6182
+    Brier loss:                 0.4442
+    With entropy regularization: 0.1521
+    With early stopping:        0.4851
+    All features combined:      0.2193
+    
+    ============================================================
+    ✓ Example completed successfully!
+    ⏱  Total execution time: 22.06 seconds
+    ============================================================
 
 
 ---
