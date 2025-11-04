@@ -30,7 +30,7 @@ from stochpw import PermutationWeighter
 
 # Your observational data
 X = jnp.array(...)  # Covariates, shape (n_samples, n_features)
-A = jnp.array(...)  # Treatments, shape (n_samples, 1)
+A = jnp.array(...)  # Treatments, shape (n_samples,) or (n_samples, n_treatments)
 
 # Fit permutation weighter (sklearn-style API)
 weighter = PermutationWeighter(
