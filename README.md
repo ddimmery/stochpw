@@ -19,7 +19,7 @@ For development:
 ```bash
 git clone https://github.com/ddimmery/stochpw.git
 cd stochpw
-poetry install
+uv sync
 ```
 
 ## Quick Start

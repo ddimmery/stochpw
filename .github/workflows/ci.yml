@@ -16,18 +16,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install poetry
-        run: pipx install poetry
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
-          cache: 'poetry'
-          cache-dependency-path: pyproject.toml
-      - run: poetry install
+          python-version: "3.12"
+      - run: uv sync
       - name: Test Coverage
-        run: 	PYTHONPATH=src poetry run python -m coverage run --source=stochpw -m pytest tests && poetry run python -m coverage report -m && poetry run python -m coverage xml
+        run: PYTHONPATH=src uv run python -m coverage run --source=stochpw -m pytest tests && uv run python -m coverage report -m && uv run python -m coverage xml
       - name: Deploy GH Pages
-        run: PYTHONPATH=src poetry run mkdocs gh-deploy --force
+        run: PYTHONPATH=src uv run mkdocs gh-deploy --force
       - uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true # optional (default = false)

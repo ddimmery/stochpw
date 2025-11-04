@@ -6,10 +6,10 @@ Before starting out, please take a look at our [Code of Conduct](code-of-conduct
 
 ## Development
 
-The first step is to clone this repository and install all dependencies. You can do this with [poetry](https://python-poetry.org/):
+The first step is to clone this repository and install all dependencies. You can do this with [uv](https://docs.astral.sh/uv/):
 
 ```
-poetry install
+uv sync
 ```
 
 or just with `pip`:
@@ -17,7 +17,7 @@ or just with `pip`:
 pip install .
 ```
 
-Using poetry is particularly nice because it will keep all dependencies in a virtual environment without confusing your local setup.
+Using uv is particularly nice because it will keep all dependencies in a virtual environment without confusing your local setup.
 
 A few tools are provided to make things easier. A basic `Makefile` provides the necessary commands to build the entire package and documentation. Running `make` will build everything necessary for local testing.
 

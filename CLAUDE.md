@@ -151,7 +151,7 @@ import time
 
 **Generating documentation:**
 ```bash
-poetry run python docs/gen_examples.py
+uv run python docs/gen_examples.py
 ```
 
 This:
@@ -166,32 +166,32 @@ See [basic_usage.py](examples/basic_usage.py) for a complete example in jupytext
 
 ### Running tests
 ```bash
-poetry run pytest                          # Run all tests
-poetry run pytest tests/test_core.py       # Run specific test file
-poetry run pytest -k "test_balance"        # Run tests matching pattern
-poetry run pytest --cov=src/stochpw        # Run with coverage
+uv run pytest                          # Run all tests
+uv run pytest tests/test_core.py       # Run specific test file
+uv run pytest -k "test_balance"        # Run tests matching pattern
+uv run pytest --cov=src/stochpw        # Run with coverage
 ```
 
 ### Building documentation
 ```bash
-poetry run mkdocs serve                    # Local preview at http://127.0.0.1:8000
-poetry run mkdocs build                    # Build static site to site/
+uv run mkdocs serve                    # Local preview at http://127.0.0.1:8000
+uv run mkdocs build                    # Build static site to site/
 ```
 
 ### Package release
 ```bash
 make clean                      # Clean build artifacts
 make build                      # Build package
-poetry publish                  # Publish to PyPI (requires auth)
+uv publish                      # Publish to PyPI (requires auth)
 ```
 
 ### Running examples
 ```bash
-poetry run python examples/basic_usage.py           # Run basic example
-poetry run python examples/mlp_discriminator.py     # Run MLP example
-poetry run python examples/advanced_features.py     # Run advanced features example
-poetry run python examples/diagnostics_demo.py      # Run diagnostics demo
-poetry run python examples/lalonde_experiment.py    # Run Lalonde experiment
+uv run python examples/basic_usage.py           # Run basic example
+uv run python examples/mlp_discriminator.py     # Run MLP example
+uv run python examples/advanced_features.py     # Run advanced features example
+uv run python examples/diagnostics_demo.py      # Run diagnostics demo
+uv run python examples/lalonde_experiment.py    # Run Lalonde experiment
 ```
 
 ## Important Implementation Details
