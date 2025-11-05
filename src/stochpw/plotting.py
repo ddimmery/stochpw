@@ -1,7 +1,5 @@
 """Visualization utilities for permutation weighting diagnostics."""
 
-from typing import Any
-
 import jax.numpy as jnp
 import pandas as pd
 from jax import Array
@@ -152,7 +150,7 @@ def plot_weight_distribution(weights: Array):
     return p
 
 
-def plot_training_history(history: dict[str, Any]):
+def plot_training_history(history: dict[str, list[float]]):
     """
     Plot training loss and other metrics over epochs.
 

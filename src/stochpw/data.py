@@ -1,9 +1,10 @@
 """Data structures for permutation weighting."""
 
 from dataclasses import dataclass
-from typing import Any
 
 from jax import Array
+
+from .types import OptimizerState, PyTree
 
 
 @dataclass(frozen=True)
@@ -29,8 +30,8 @@ class WeightedData:
 class TrainingState:
     """State of the training process."""
 
-    params: Any  # Model parameters (JAX PyTree - can be dict, nested dict, etc.)
-    opt_state: Any  # Optimizer state (Optax OptState)
+    params: PyTree  # Model parameters (JAX PyTree - can be dict, nested dict, etc.)
+    opt_state: OptimizerState  # Optimizer state (Optax OptState)  # type: ignore[misc]
     rng_key: Array  # RNG key for reproducibility
     epoch: int  # Current epoch
     history: dict[str, list[float]]  # Training history

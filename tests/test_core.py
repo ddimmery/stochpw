@@ -205,7 +205,7 @@ class TestPermutationWeighter:
         A = jax.random.bernoulli(jax.random.PRNGKey(1), propensity).astype(float)
         # Fit weighter
         opt = optax.rmsprop(learning_rate=0.1)
-        weighter = PermutationWeighter(num_epochs=2, batch_size=100, random_state=42, optimizer=opt)
+        weighter = PermutationWeighter(num_epochs=10, batch_size=50, random_state=42, optimizer=opt)
         weighter.fit(X, A)
         weights = weighter.predict(X, A)
 

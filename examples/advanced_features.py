@@ -82,7 +82,7 @@ weighter_default = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_default.fit(X, A)
+_ = weighter_default.fit(X, A)
 weights_default = weighter_default.predict(X, A)
 smd_default = standardized_mean_difference(X, A, weights_default)
 
@@ -105,7 +105,7 @@ weighter_exp = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_exp.fit(X, A)
+_ = weighter_exp.fit(X, A)
 weights_exp = weighter_exp.predict(X, A)
 smd_exp = standardized_mean_difference(X, A, weights_exp)
 
@@ -127,7 +127,7 @@ weighter_brier = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_brier.fit(X, A)
+_ = weighter_brier.fit(X, A)
 weights_brier = weighter_brier.predict(X, A)
 smd_brier = standardized_mean_difference(X, A, weights_brier)
 
@@ -152,7 +152,7 @@ weighter_entropy_reg = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_entropy_reg.fit(X, A)
+_ = weighter_entropy_reg.fit(X, A)
 weights_entropy_reg = weighter_entropy_reg.predict(X, A)
 smd_entropy_reg = standardized_mean_difference(X, A, weights_entropy_reg)
 
@@ -164,7 +164,7 @@ weighter_no_reg = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_no_reg.fit(X, A)
+_ = weighter_no_reg.fit(X, A)
 weights_no_reg = weighter_no_reg.predict(X, A)
 
 # Compute negative entropy (penalty) for comparison
@@ -192,7 +192,7 @@ weighter_early = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_early.fit(X, A)
+_ = weighter_early.fit(X, A)
 weights_early = weighter_early.predict(X, A)
 smd_early = standardized_mean_difference(X, A, weights_early)
 
@@ -222,7 +222,7 @@ weighter_combined = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_combined.fit(X, A)
+_ = weighter_combined.fit(X, A)
 weights_combined = weighter_combined.predict(X, A)
 smd_combined = standardized_mean_difference(X, A, weights_combined)
 

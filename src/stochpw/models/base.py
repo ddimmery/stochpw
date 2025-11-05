@@ -1,11 +1,10 @@
 """Abstract base class for discriminator models."""
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from jax import Array
 
-PyTree = Any  # Type alias for JAX PyTree
+from ..types import PyTree
 
 
 class BaseDiscriminator(ABC):

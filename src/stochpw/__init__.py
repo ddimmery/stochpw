@@ -36,6 +36,16 @@ from .training import (
     lp_weight_penalty,
     train_step,
 )
+from .types import (
+    BalanceReport,
+    DiscriminatorParams,
+    LinearParams,
+    LossFn,
+    MLPParams,
+    OptimizerState,
+    PyTree,
+    TrainingHistory,
+)
 from .utils import permute_treatment, validate_inputs
 from .weights import extract_weights
 
@@ -76,4 +86,13 @@ __all__ = [
     # Utilities
     "validate_inputs",
     "permute_treatment",
+    # Type aliases (for type annotations in user code)
+    "PyTree",
+    "LinearParams",
+    "MLPParams",
+    "DiscriminatorParams",
+    "OptimizerState",
+    "LossFn",
+    "TrainingHistory",
+    "BalanceReport",
 ]

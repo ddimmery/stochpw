@@ -76,3 +76,41 @@ omit = ["tests/*", "**/__pycache__/*"]
 precision = 2
 show_missing = true
 skip_covered = false
+
+[tool.basedpyright]
+include = ["src", "examples"]
+exclude = ["**/__pycache__", ".git", ".venv", "venv", "build", "dist"]
+pythonVersion = "3.12"
+pythonPlatform = "Darwin"
+typeCheckingMode = "standard"
+
+# Library-related: Keep relaxed due to incomplete JAX/NumPy/plotnine stubs
+reportMissingTypeStubs = "none"
+reportUnknownMemberType = "none"
+reportUnknownParameterType = "none"
+reportUnknownVariableType = "none"
+reportUnknownArgumentType = "none"
+reportPrivateImportUsage = "none"
+
+# Code quality: Enable strict checks
+reportImplicitStringConcatenation = "error"
+reportConstantRedefinition = "error"
+reportIncompatibleMethodOverride = "error"
+reportDeprecated = "warning"
+reportUnusedVariable = "warning"
+reportUnusedCallResult = "warning"
+reportImplicitOverride = "warning"
+
+# Type annotations: Enable stricter checking
+reportMissingTypeArgument = "warning"
+reportUnannotatedClassAttribute = "warning"
+reportExplicitAny = "warning"
+reportMissingParameterType = "warning"
+reportGeneralTypeIssues = "warning"
+
+# Safety: Enable strict checks for None access
+reportOptionalMemberAccess = "error"
+reportOptionalSubscript = "error"
+
+# Keep flexible for now (can be tightened further)
+reportAny = "none"

@@ -88,7 +88,7 @@ for name, discriminator in configs:
         random_state=42,
     )
 
-    weighter.fit(X, A)
+    _ = weighter.fit(X, A)
     weights = weighter.predict(X, A)
 
     # Calculate balance improvement

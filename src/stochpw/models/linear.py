@@ -1,14 +1,13 @@
 """Linear discriminator for permutation weighting."""
 
-from typing import Any, override
+from typing import cast, override
 
 import jax
 import jax.numpy as jnp
 from jax import Array
 
+from ..types import LinearParams, PyTree
 from .base import BaseDiscriminator
-
-PyTree = Any
 
 
 class LinearDiscriminator(BaseDiscriminator):
@@ -39,7 +38,7 @@ class LinearDiscriminator(BaseDiscriminator):
     """
 
     @override
-    def init_params(self, rng_key: Array, d_a: int, d_x: int) -> dict[str, Any]:
+    def init_params(self, rng_key: Array, d_a: int, d_x: int) -> LinearParams:
         """
         Initialize linear discriminator parameters.
 
@@ -79,7 +78,7 @@ class LinearDiscriminator(BaseDiscriminator):
         return {"w_a": w_a, "w_x": w_x, "w_ax": w_ax, "b": b}
 
     @override
-    def apply(self, params: dict[str, Any], a: Array, x: Array, ax: Array) -> Array:
+    def apply(self, params: PyTree, a: Array, x: Array, ax: Array) -> Array:  # type: ignore[override]
         """
         Compute linear discriminator logits using A, X, and A*X.
 
@@ -103,12 +102,15 @@ class LinearDiscriminator(BaseDiscriminator):
         if a.ndim == 1:
             a = a.reshape(-1, 1)
 
+        # Cast params to expected dict type for type checker
+        params_dict = cast(LinearParams, params)
+
         # Linear transformation: w_a^T A + w_x^T X + w_ax^T (A*X) + b
         logits = (
-            jnp.dot(a, params["w_a"])
-            + jnp.dot(x, params["w_x"])
-            + jnp.dot(ax, params["w_ax"])
-            + params["b"]
+            jnp.dot(a, params_dict["w_a"])
+            + jnp.dot(x, params_dict["w_x"])
+            + jnp.dot(ax, params_dict["w_ax"])
+            + params_dict["b"]
         )
 
         return logits

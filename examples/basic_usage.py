@@ -57,7 +57,7 @@ print(f"Treatment distribution: {A.mean():.2%} treated")
 opt = optax.rmsprop(learning_rate=0.1)
 weighter = PermutationWeighter(num_epochs=20, batch_size=250 // 4, random_state=42, optimizer=opt)
 
-weighter.fit(X, A)
+_ = weighter.fit(X, A)
 weights = weighter.predict(X, A)
 
 print("Fitting complete!")

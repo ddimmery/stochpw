@@ -1,14 +1,15 @@
 """Multi-layer perceptron discriminator for permutation weighting."""
 
-from typing import Any, Callable, Literal, override
+from collections.abc import Callable
+from typing import Literal, cast, override
 
 import jax
 import jax.numpy as jnp
 from jax import Array
 
+from ..types import MLPParams, PyTree
 from .base import BaseDiscriminator
 
-PyTree = Any
 ActivationType = Literal["relu", "tanh", "elu", "sigmoid"]
 
 
@@ -83,7 +84,7 @@ class MLPDiscriminator(BaseDiscriminator):
         self._use_he_init: bool = activation in ("relu", "elu")
 
     @override
-    def init_params(self, rng_key: Array, d_a: int, d_x: int) -> dict[str, Any]:
+    def init_params(self, rng_key: Array, d_a: int, d_x: int) -> MLPParams:
         """
         Initialize MLP discriminator parameters.
 
@@ -133,7 +134,7 @@ class MLPDiscriminator(BaseDiscriminator):
         return params
 
     @override
-    def apply(self, params: dict[str, Any], a: Array, x: Array, ax: Array) -> Array:
+    def apply(self, params: PyTree, a: Array, x: Array, ax: Array) -> Array:  # type: ignore[override]
         """
         Compute MLP discriminator logits using A, X, and A*X.
 
@@ -160,12 +161,15 @@ class MLPDiscriminator(BaseDiscriminator):
         # Concatenate all features: [A, X, A*X]
         h = jnp.concatenate([a, x, ax], axis=-1)
 
+        # Cast params to expected dict type for type checker
+        params_dict = cast(MLPParams, params)
+
         # Forward pass through hidden layers
-        for i, layer in enumerate(params["layers"]):
+        for i, layer in enumerate(params_dict["layers"]):
             h = jnp.dot(h, layer["w"]) + layer["b"]
 
             # Apply activation to all layers except the last (output layer)
-            if i < len(params["layers"]) - 1:
+            if i < len(params_dict["layers"]) - 1:
                 h = self._activation_fn(h)
 
         # Output is shape (batch_size, 1), squeeze to (batch_size,)

@@ -255,7 +255,7 @@ weighter_simple = PermutationWeighter(
 )
 
 print("\nFitting weighter...")
-weighter_simple.fit(X, A)
+_ = weighter_simple.fit(X, A)
 weights_simple = weighter_simple.predict(X, A)
 
 # Estimate ATE
@@ -297,7 +297,7 @@ weighter_large = PermutationWeighter(
 )
 
 print("\nFitting weighter...")
-weighter_large.fit(X, A)
+_ = weighter_large.fit(X, A)
 weights_large = weighter_large.predict(X, A)
 
 # Estimate ATE

@@ -1,6 +1,7 @@
 """Main API for permutation weighting."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import jax
 import jax.numpy as jnp
@@ -10,6 +11,7 @@ from numpy.typing import NDArray
 
 from .models import BaseDiscriminator, LinearDiscriminator
 from .training import fit_discriminator, logistic_loss
+from .types import LossFn, PyTree
 from .utils import validate_inputs
 from .weights import extract_weights
 
@@ -92,7 +94,7 @@ class PermutationWeighter:
         num_epochs: int = 100,
         batch_size: int = 256,
         random_state: int | None = None,
-        loss_fn: Callable[[Array, Array], Array] = logistic_loss,
+        loss_fn: LossFn = logistic_loss,
         regularization_fn: Callable[[Array], Array] | None = None,
         regularization_strength: float = 0.0,
         early_stopping: bool = False,
@@ -106,7 +108,7 @@ class PermutationWeighter:
         self.num_epochs: int = num_epochs
         self.batch_size: int = batch_size
         self.random_state: int | None = random_state
-        self.loss_fn: Callable[[Array, Array], Array] = loss_fn
+        self.loss_fn: LossFn = loss_fn
         self.regularization_fn: Callable[[Array], Array] | None = regularization_fn
         self.regularization_strength: float = regularization_strength
         self.early_stopping: bool = early_stopping
@@ -114,11 +116,15 @@ class PermutationWeighter:
         self.min_delta: float = min_delta
 
         # Fitted attributes (set by fit())
-        self.params_: dict[str, Any] | None = None
-        self.history_: dict[str, Any] | None = None
+        self.params_: PyTree | None = None
+        self.history_: dict[str, list[float]] | None = None
         self._input_dim: int | None = None
 
-    def fit(self, X: Array | NDArray[Any], A: Array | NDArray[Any]) -> "PermutationWeighter":
+    def fit(
+        self,
+        X: Array | NDArray[Any],  # type: ignore[misc]
+        A: Array | NDArray[Any],  # type: ignore[misc]
+    ) -> "PermutationWeighter":
         """
         Fit discriminator on data (sklearn-style).
 
@@ -177,7 +183,11 @@ class PermutationWeighter:
 
         return self
 
-    def predict(self, X: Array | NDArray[Any], A: Array | NDArray[Any]) -> Array:
+    def predict(
+        self,
+        X: Array | NDArray[Any],  # type: ignore[misc]
+        A: Array | NDArray[Any],  # type: ignore[misc]
+    ) -> Array:
         """
         Predict importance weights for given data (sklearn-style).
 

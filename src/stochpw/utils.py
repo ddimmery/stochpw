@@ -24,7 +24,10 @@ def _validate_treatment_variation(A: Array) -> None:
             )
 
 
-def validate_inputs(X: Array | NDArray[Any], A: Array | NDArray[Any]) -> tuple[Array, Array]:
+def validate_inputs(
+    X: Array | NDArray[Any],  # type: ignore[misc]
+    A: Array | NDArray[Any],  # type: ignore[misc]
+) -> tuple[Array, Array]:
     """
     Validate and convert inputs to JAX arrays.
 

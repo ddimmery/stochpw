@@ -1,15 +1,17 @@
 """Weight extraction utilities for permutation weighting."""
 
-from typing import Any, Callable
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
 from jax import Array
 
+from .types import PyTree
+
 
 def extract_weights(
-    discriminator_fn: Callable[[dict[str, Any], Array, Array, Array], Array],
-    params: dict[str, Any],
+    discriminator_fn: Callable[[PyTree, Array, Array, Array], Array],
+    params: PyTree,
     X: Array,
     A: Array,
     AX: Array,

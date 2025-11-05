@@ -105,7 +105,7 @@ print("=" * 70)
 opt = optax.rmsprop(learning_rate=0.1)
 weighter = PermutationWeighter(num_epochs=50, batch_size=250, random_state=42, optimizer=opt)
 
-weighter.fit(X, A)
+_ = weighter.fit(X, A)
 weights = weighter.predict(X, A)
 
 assert weighter.history_ is not None
@@ -239,9 +239,10 @@ print("=" * 70)
 
 print(f"\n{'Metric':<30} {'Before':<15} {'After':<15} {'Improvement':<15}")
 print("-" * 75)
-max_smd_imp = (1 - final_report["max_smd"] / initial_report["max_smd"]) * 100
-mean_smd_imp = (1 - final_report["mean_smd"] / initial_report["mean_smd"]) * 100
-ess_change = (final_report["ess"] / initial_report["ess"] - 1) * 100
+# Type ignore needed because balance_report returns a union type
+max_smd_imp = (1 - float(final_report["max_smd"]) / float(initial_report["max_smd"])) * 100  # type: ignore[arg-type]
+mean_smd_imp = (1 - float(final_report["mean_smd"]) / float(initial_report["mean_smd"])) * 100  # type: ignore[arg-type]
+ess_change = (float(final_report["ess"]) / float(initial_report["ess"]) - 1) * 100  # type: ignore[arg-type]
 print(
     f"{'Max SMD':<30} {initial_report['max_smd']:>13.4f}  "
     + f"{final_report['max_smd']:>13.4f}  {max_smd_imp:>12.1f}%"

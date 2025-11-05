@@ -1,6 +1,6 @@
 """Training loop for permutation weighting discriminators."""
 
-from typing import Any, Callable
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -8,6 +8,7 @@ import optax
 from jax import Array
 
 from ..data import TrainingBatch, TrainingState, TrainingStepResult
+from ..types import LossFn, PyTree
 from .batch import create_training_batch
 from .losses import logistic_loss
 
@@ -15,9 +16,9 @@ from .losses import logistic_loss
 def train_step(
     state: TrainingState,
     batch: TrainingBatch,
-    discriminator_fn: Callable[[dict[str, Any], Array, Array, Array], Array],
+    discriminator_fn: Callable[[PyTree, Array, Array, Array], Array],
     optimizer: optax.GradientTransformation,
-    loss_fn_type: Callable[[Array, Array], Array] = logistic_loss,
+    loss_fn_type: LossFn = logistic_loss,
     regularization_fn: Callable[[Array], Array] | None = None,
     regularization_strength: float = 0.0,
     eps: float = 1e-7,
@@ -52,7 +53,7 @@ def train_step(
         Updated state and loss value
     """
 
-    def loss_fn(params: Any) -> Array:
+    def loss_fn(params: PyTree) -> Array:
         logits = discriminator_fn(params, batch.A, batch.X, batch.AX)
         loss = loss_fn_type(logits, batch.C)
 
@@ -77,7 +78,7 @@ def train_step(
     params = optax.apply_updates(state.params, updates)
 
     new_state = TrainingState(
-        params=params,
+        params=params,  # type: ignore[arg-type]
         opt_state=opt_state,
         rng_key=state.rng_key,
         epoch=state.epoch,
@@ -90,20 +91,20 @@ def train_step(
 def fit_discriminator(
     X: Array,
     A: Array,
-    discriminator_fn: Callable[[dict[str, Any], Array, Array, Array], Array],
-    init_params: dict[str, Any],
+    discriminator_fn: Callable[[PyTree, Array, Array, Array], Array],
+    init_params: PyTree,
     optimizer: optax.GradientTransformation,
     num_epochs: int,
     batch_size: int,
     rng_key: Array,
-    loss_fn: Callable[[Array, Array], Array] = logistic_loss,
+    loss_fn: LossFn = logistic_loss,
     regularization_fn: Callable[[Array], Array] | None = None,
     regularization_strength: float = 0.0,
     early_stopping: bool = False,
     patience: int = 10,
     min_delta: float = 1e-4,
     eps: float = 1e-7,
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> tuple[PyTree, dict[str, list[float]]]:
     """
     Complete training loop for discriminator.
 
