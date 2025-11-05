@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 import pytest
+
 from stochpw.models import LinearDiscriminator
 from stochpw.weights import extract_weights
 

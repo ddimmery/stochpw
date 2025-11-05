@@ -1,12 +1,12 @@
 """Main API for permutation weighting."""
 
-from typing import Callable, Optional
+from typing import Any, Callable
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 from jax import Array
+from numpy.typing import NDArray
 
 from .models import BaseDiscriminator, LinearDiscriminator
 from .training import fit_discriminator, logistic_loss
@@ -87,36 +87,38 @@ class PermutationWeighter:
 
     def __init__(
         self,
-        discriminator: Optional[BaseDiscriminator] = None,
-        optimizer: Optional[optax.GradientTransformation] = None,
+        discriminator: BaseDiscriminator | None = None,
+        optimizer: optax.GradientTransformation | None = None,
         num_epochs: int = 100,
         batch_size: int = 256,
-        random_state: Optional[int] = None,
+        random_state: int | None = None,
         loss_fn: Callable[[Array, Array], Array] = logistic_loss,
-        regularization_fn: Optional[Callable[[Array], Array]] = None,
+        regularization_fn: Callable[[Array], Array] | None = None,
         regularization_strength: float = 0.0,
         early_stopping: bool = False,
         patience: int = 10,
         min_delta: float = 1e-4,
     ):
-        self.discriminator = discriminator if discriminator is not None else LinearDiscriminator()
-        self.optimizer = optimizer
-        self.num_epochs = num_epochs
-        self.batch_size = batch_size
-        self.random_state = random_state
-        self.loss_fn = loss_fn
-        self.regularization_fn = regularization_fn
-        self.regularization_strength = regularization_strength
-        self.early_stopping = early_stopping
-        self.patience = patience
-        self.min_delta = min_delta
+        self.discriminator: BaseDiscriminator = (
+            discriminator if discriminator is not None else LinearDiscriminator()
+        )
+        self.optimizer: optax.GradientTransformation | None = optimizer
+        self.num_epochs: int = num_epochs
+        self.batch_size: int = batch_size
+        self.random_state: int | None = random_state
+        self.loss_fn: Callable[[Array, Array], Array] = loss_fn
+        self.regularization_fn: Callable[[Array], Array] | None = regularization_fn
+        self.regularization_strength: float = regularization_strength
+        self.early_stopping: bool = early_stopping
+        self.patience: int = patience
+        self.min_delta: float = min_delta
 
         # Fitted attributes (set by fit())
-        self.params_ = None
-        self.history_ = None
-        self._input_dim = None
+        self.params_: dict[str, Any] | None = None
+        self.history_: dict[str, Any] | None = None
+        self._input_dim: int | None = None
 
-    def fit(self, X: Array | np.ndarray, A: Array | np.ndarray) -> "PermutationWeighter":
+    def fit(self, X: Array | NDArray[Any], A: Array | NDArray[Any]) -> "PermutationWeighter":
         """
         Fit discriminator on data (sklearn-style).
 
@@ -133,7 +135,7 @@ class PermutationWeighter:
             Fitted estimator (for method chaining)
         """
         # Validate and convert inputs
-        X, A = validate_inputs(X, A)
+        x_val, a_val = validate_inputs(X, A)
 
         # Set up RNG key
         if self.random_state is not None:
@@ -142,8 +144,8 @@ class PermutationWeighter:
             rng_key = jax.random.PRNGKey(0)
 
         # Determine dimensions
-        d_a = A.shape[1]
-        d_x = X.shape[1]
+        d_a = a_val.shape[1]
+        d_x = x_val.shape[1]
 
         # Initialize discriminator parameters
         init_key, train_key = jax.random.split(rng_key)
@@ -157,8 +159,8 @@ class PermutationWeighter:
 
         # Fit discriminator
         self.params_, self.history_ = fit_discriminator(
-            X=X,
-            A=A,
+            X=x_val,
+            A=a_val,
             discriminator_fn=self.discriminator.apply,
             init_params=init_params,
             optimizer=optimizer,
@@ -175,7 +177,7 @@ class PermutationWeighter:
 
         return self
 
-    def predict(self, X: Array | np.ndarray, A: Array | np.ndarray) -> Array:
+    def predict(self, X: Array | NDArray[Any], A: Array | NDArray[Any]) -> Array:
         """
         Predict importance weights for given data (sklearn-style).
 
@@ -199,16 +201,16 @@ class PermutationWeighter:
         if self.params_ is None:
             raise NotFittedError(
                 "This PermutationWeighter instance is not fitted yet. "
-                "Call 'fit' with appropriate arguments before using 'predict'."
+                + "Call 'fit' with appropriate arguments before using 'predict'."
             )
 
         # Validate and convert inputs
-        X, A = validate_inputs(X, A)
+        x_val, a_val = validate_inputs(X, A)
 
         # Compute interactions
-        AX = jnp.einsum("bi,bj->bij", A, X).reshape(X.shape[0], -1)
+        ax = jnp.einsum("bi,bj->bij", a_val, x_val).reshape(x_val.shape[0], -1)
 
         # Extract weights
-        weights = extract_weights(self.discriminator.apply, self.params_, X, A, AX)
+        weights = extract_weights(self.discriminator.apply, self.params_, x_val, a_val, ax)
 
         return weights

@@ -2,6 +2,7 @@
 
 import jax.numpy as jnp
 import pytest
+
 from stochpw.diagnostics import (
     effective_sample_size,
     standardized_mean_difference,

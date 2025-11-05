@@ -26,18 +26,17 @@ def standardized_mean_difference(X: Array, A: Array, weights: Array) -> Array:
         SMD or correlation for each covariate
     """
     # Ensure A is 1D for this computation
-    if A.ndim == 2:
-        A = A.squeeze()
+    a_1d = A.squeeze() if A.ndim == 2 else A
 
     # Check if A is binary
-    unique_a = jnp.unique(A)
+    unique_a = jnp.unique(a_1d)
     is_binary = len(unique_a) == 2
 
     if is_binary:
         # Binary treatment: compute SMD
         a0, a1 = unique_a[0], unique_a[1]
-        mask_0 = A == a0
-        mask_1 = A == a1
+        mask_0 = a_1d == a0
+        mask_1 = a_1d == a1
 
         # Weighted means
         weights_0 = weights * mask_0
@@ -65,18 +64,18 @@ def standardized_mean_difference(X: Array, A: Array, weights: Array) -> Array:
         w_norm = weights / jnp.sum(weights)
 
         # Weighted means
-        mean_A = jnp.sum(w_norm * A)
+        mean_a = jnp.sum(w_norm * a_1d)
         mean_X = jnp.sum(w_norm[:, None] * X, axis=0)
 
         # Weighted covariance
-        cov = jnp.sum(w_norm[:, None] * (A[:, None] - mean_A) * (X - mean_X), axis=0)
+        cov = jnp.sum(w_norm[:, None] * (a_1d[:, None] - mean_a) * (X - mean_X), axis=0)
 
         # Weighted standard deviations
-        std_A = jnp.sqrt(jnp.sum(w_norm * (A - mean_A) ** 2))
+        std_a = jnp.sqrt(jnp.sum(w_norm * (a_1d - mean_a) ** 2))
         std_X = jnp.sqrt(jnp.sum(w_norm[:, None] * (X - mean_X) ** 2, axis=0))
 
         # Correlation
-        smd = cov / (std_A * std_X + 1e-10)
+        smd = cov / (std_a * std_X + 1e-10)
 
     return smd
 
@@ -102,18 +101,17 @@ def standardized_mean_difference_se(X: Array, A: Array, weights: Array) -> Array
         Standard error for each covariate's SMD
     """
     # Ensure A is 1D
-    if A.ndim == 2:
-        A = A.squeeze()
+    a_1d = A.squeeze() if A.ndim == 2 else A
 
     # Check if A is binary
-    unique_a = jnp.unique(A)
+    unique_a = jnp.unique(a_1d)
     is_binary = len(unique_a) == 2
 
     if is_binary:
         # Binary treatment: bootstrap-style SE
         a0, a1 = unique_a[0], unique_a[1]
-        mask_0 = A == a0
-        mask_1 = A == a1
+        mask_0 = a_1d == a0
+        mask_1 = a_1d == a1
 
         # Effective sample sizes
         weights_0 = weights * mask_0

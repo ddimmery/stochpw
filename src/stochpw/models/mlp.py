@@ -1,6 +1,6 @@
 """Multi-layer perceptron discriminator for permutation weighting."""
 
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Literal, override
 
 import jax
 import jax.numpy as jnp
@@ -77,12 +77,13 @@ class MLPDiscriminator(BaseDiscriminator):
     ):
         if hidden_dims is None:
             hidden_dims = [64, 32]
-        self.hidden_dims = hidden_dims
-        self.activation = activation
-        self._activation_fn = _get_activation(activation)
-        self._use_he_init = activation in ("relu", "elu")
+        self.hidden_dims: list[int] = hidden_dims
+        self.activation: ActivationType = activation
+        self._activation_fn: Callable[[Array], Array] = _get_activation(activation)
+        self._use_he_init: bool = activation in ("relu", "elu")
 
-    def init_params(self, rng_key: Array, d_a: int, d_x: int) -> dict:
+    @override
+    def init_params(self, rng_key: Array, d_a: int, d_x: int) -> dict[str, Any]:
         """
         Initialize MLP discriminator parameters.
 
@@ -113,7 +114,7 @@ class MLPDiscriminator(BaseDiscriminator):
 
         for i in range(len(layer_dims) - 1):
             current_key, layer_key = jax.random.split(current_key)
-            w_key, b_key = jax.random.split(layer_key)
+            w_key, _b_key = jax.random.split(layer_key)
 
             in_dim = layer_dims[i]
             out_dim = layer_dims[i + 1]
@@ -131,7 +132,8 @@ class MLPDiscriminator(BaseDiscriminator):
 
         return params
 
-    def apply(self, params: dict, a: Array, x: Array, ax: Array) -> Array:
+    @override
+    def apply(self, params: dict[str, Any], a: Array, x: Array, ax: Array) -> Array:
         """
         Compute MLP discriminator logits using A, X, and A*X.
 

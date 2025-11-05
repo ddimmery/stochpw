@@ -1,5 +1,7 @@
 """Advanced balance diagnostics."""
 
+from typing import Any
+
 import jax.numpy as jnp
 from jax import Array
 
@@ -196,7 +198,7 @@ def weight_statistics(weights: Array) -> dict[str, float]:
     }
 
 
-def balance_report(X: Array, A: Array, weights: Array) -> dict:
+def balance_report(X: Array, A: Array, weights: Array) -> dict[str, Any]:
     """
     Generate comprehensive balance report.
 

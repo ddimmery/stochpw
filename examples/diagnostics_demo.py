@@ -28,6 +28,7 @@ import time
 import jax
 import jax.numpy as jnp
 import optax
+
 from stochpw import (
     PermutationWeighter,
     balance_report,
@@ -46,11 +47,12 @@ from stochpw.plotting import (
 # %% [markdown]
 # ## Generate Data with Confounding
 
+
 # %%
-def generate_confounded_data(n=1000, seed=42):
+def generate_confounded_data(n: int = 1000, seed: int = 42):
     """Generate synthetic data with treatment-covariate confounding."""
     key = jax.random.PRNGKey(seed)
-    key1, key2, key3 = jax.random.split(key, 3)
+    key1, key2, _key3 = jax.random.split(key, 3)
 
     # Generate covariates
     X = jax.random.normal(key1, (n, 5))
@@ -60,6 +62,7 @@ def generate_confounded_data(n=1000, seed=42):
     A = (jax.random.uniform(key2, (n,)) < propensity).astype(float)
 
     return X, A
+
 
 start_time = time.time()
 
@@ -100,12 +103,7 @@ print("Step 2: Fit Permutation Weighter")
 print("=" * 70)
 
 opt = optax.rmsprop(learning_rate=0.1)
-weighter = PermutationWeighter(
-    num_epochs=50,
-    batch_size=250,
-    random_state=42,
-    optimizer=opt
-)
+weighter = PermutationWeighter(num_epochs=50, batch_size=250, random_state=42, optimizer=opt)
 
 weighter.fit(X, A)
 weights = weighter.predict(X, A)
@@ -183,8 +181,7 @@ auc = float(jnp.trapezoid(tpr, fpr))
 
 print(f"\nROC AUC: {auc:.4f}")
 print(
-    "\nInterpretation: AUC measures discriminator's ability to distinguish "
-    "observed from permuted."
+    "\nInterpretation: AUC measures discriminator's ability to distinguish observed from permuted."
 )
 print("  AUC = 0.5: Random guessing (poor discriminator)")
 print("  AUC = 1.0: Perfect discrimination")
@@ -247,19 +244,19 @@ mean_smd_imp = (1 - final_report["mean_smd"] / initial_report["mean_smd"]) * 100
 ess_change = (final_report["ess"] / initial_report["ess"] - 1) * 100
 print(
     f"{'Max SMD':<30} {initial_report['max_smd']:>13.4f}  "
-    f"{final_report['max_smd']:>13.4f}  {max_smd_imp:>12.1f}%"
+    + f"{final_report['max_smd']:>13.4f}  {max_smd_imp:>12.1f}%"
 )
 print(
     f"{'Mean SMD':<30} {initial_report['mean_smd']:>13.4f}  "
-    f"{final_report['mean_smd']:>13.4f}  {mean_smd_imp:>12.1f}%"
+    + f"{final_report['mean_smd']:>13.4f}  {mean_smd_imp:>12.1f}%"
 )
 print(
     f"{'ESS':<30} {initial_report['ess']:>13.0f}  "
-    f"{final_report['ess']:>13.0f}  {ess_change:>12.1f}%"
+    + f"{final_report['ess']:>13.0f}  {ess_change:>12.1f}%"
 )
 print(
     f"{'ESS Ratio':<30} {initial_report['ess_ratio']:>13.2%}  "
-    f"{final_report['ess_ratio']:>13.2%}  {'-':>15}"
+    + f"{final_report['ess_ratio']:>13.2%}  {'-':>15}"
 )
 
 # %% [markdown]

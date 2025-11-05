@@ -1,6 +1,6 @@
 """Linear discriminator for permutation weighting."""
 
-from typing import Any
+from typing import Any, override
 
 import jax
 import jax.numpy as jnp
@@ -38,7 +38,8 @@ class LinearDiscriminator(BaseDiscriminator):
     >>> # params contains: w_a, w_x, w_ax, b
     """
 
-    def init_params(self, rng_key: Array, d_a: int, d_x: int) -> dict:
+    @override
+    def init_params(self, rng_key: Array, d_a: int, d_x: int) -> dict[str, Any]:
         """
         Initialize linear discriminator parameters.
 
@@ -77,7 +78,8 @@ class LinearDiscriminator(BaseDiscriminator):
 
         return {"w_a": w_a, "w_x": w_x, "w_ax": w_ax, "b": b}
 
-    def apply(self, params: dict, a: Array, x: Array, ax: Array) -> Array:
+    @override
+    def apply(self, params: dict[str, Any], a: Array, x: Array, ax: Array) -> Array:
         """
         Compute linear discriminator logits using A, X, and A*X.
 

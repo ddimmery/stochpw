@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 import optax
+
 from stochpw.data import TrainingBatch, TrainingState
 from stochpw.models import LinearDiscriminator
 from stochpw.training import create_training_batch, fit_discriminator, logistic_loss, train_step

@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 import pytest
+
 from stochpw.data import TrainingBatch, TrainingState, TrainingStepResult, WeightedData
 
 

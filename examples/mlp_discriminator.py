@@ -27,6 +27,7 @@ import time
 
 import jax
 import jax.numpy as jnp
+
 from stochpw import MLPDiscriminator, PermutationWeighter, standardized_mean_difference
 
 # %% [markdown]

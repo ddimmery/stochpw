@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 import optax
+
 from stochpw import (
     MLPDiscriminator,
     PermutationWeighter,
@@ -94,7 +95,7 @@ class TestAlternativeLossFunctions:
             num_epochs=2,
             batch_size=80,
             random_state=42,
-            optimizer=optax.rmsprop(learning_rate=0.1)
+            optimizer=optax.rmsprop(learning_rate=0.1),
         )
         weighter.fit(X, A)
         weights = weighter.predict(X, A)

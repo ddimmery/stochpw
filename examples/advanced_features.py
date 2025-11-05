@@ -25,6 +25,7 @@ import time
 
 import jax
 import jax.numpy as jnp
+
 from stochpw import (
     MLPDiscriminator,
     PermutationWeighter,
@@ -37,11 +38,12 @@ from stochpw import (
 # %% [markdown]
 # ## Generate Synthetic Data
 
+
 # %%
-def generate_data(n=1000, seed=42):
+def generate_data(n: int = 1000, seed: int = 42):
     """Generate synthetic data with treatment-covariate confounding."""
     key = jax.random.PRNGKey(seed)
-    key1, key2, key3 = jax.random.split(key, 3)
+    key1, key2, _key3 = jax.random.split(key, 3)
 
     # Generate covariates
     X = jax.random.normal(key1, (n, 5))
@@ -51,6 +53,7 @@ def generate_data(n=1000, seed=42):
     A = (jax.random.uniform(key2, (n,)) < propensity).astype(float)[:, None]
 
     return X, A
+
 
 start_time = time.time()
 

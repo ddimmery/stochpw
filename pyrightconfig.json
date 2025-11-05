@@ -1,0 +1,17 @@
+{
+  "include": ["src", "examples"],
+  "reportMissingTypeStubs": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportAny": "none",
+  "reportImplicitStringConcatenation": "error",
+  "reportConstantRedefinition": "error",
+  "reportMissingTypeArgument": "error",
+  "reportUnannotatedClassAttribute": "error",
+  "reportDeprecated": "warning",
+  "reportExplicitAny": "none",
+  "reportUnusedVariable": "warning",
+  "reportUnusedCallResult": "none"
+}

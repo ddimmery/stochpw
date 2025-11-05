@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 import pytest
+
 from stochpw import LinearDiscriminator, MLPDiscriminator, PermutationWeighter
 from stochpw.core import NotFittedError
 from stochpw.diagnostics import effective_sample_size, standardized_mean_difference
@@ -182,7 +183,12 @@ class TestPermutationWeighter:
         propensity = jax.nn.sigmoid(0.5 * X[:, 0] - 0.3 * X[:, 1])
         A = jax.random.bernoulli(jax.random.PRNGKey(1), propensity).astype(float)
 
-        weighter = PermutationWeighter(num_epochs=10, batch_size=32, random_state=42, optimizer=optax.rmsprop(learning_rate=0.1),)
+        weighter = PermutationWeighter(
+            num_epochs=10,
+            batch_size=32,
+            random_state=42,
+            optimizer=optax.rmsprop(learning_rate=0.1),
+        )
         weighter.fit(X, A)
 
         # Loss should generally decrease
@@ -383,7 +389,11 @@ class TestPermutationWeighter:
 
         # Linear discriminator
         weighter_linear = PermutationWeighter(
-            discriminator=LinearDiscriminator(), num_epochs=2, batch_size=25, random_state=42, optimizer=optax.rmsprop(learning_rate=0.1),
+            discriminator=LinearDiscriminator(),
+            num_epochs=2,
+            batch_size=25,
+            random_state=42,
+            optimizer=optax.rmsprop(learning_rate=0.1),
         )
         weighter_linear.fit(X, A)
 

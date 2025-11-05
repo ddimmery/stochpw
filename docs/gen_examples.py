@@ -36,9 +36,7 @@ def convert_py_to_ipynb(example_path: Path, output_ipynb_path: Path) -> bool:
         return False
 
 
-def execute_and_convert_notebook(
-    ipynb_path: Path, output_md_path: Path, figures_dir: Path
-) -> bool:
+def execute_and_convert_notebook(ipynb_path: Path, output_md_path: Path, figures_dir: Path) -> bool:
     """
     Execute notebook and convert to markdown using nbconvert.
 
@@ -207,21 +205,21 @@ def create_examples_index(examples_docs_dir: Path, example_files: list[Path]) ->
         "basic_usage": {
             "title": "Basic Usage",
             "description": (
-                "Introduction to fitting permutation weighters " "and assessing balance improvement"
+                "Introduction to fitting permutation weighters and assessing balance improvement"
             ),
             "category": "basic",
         },
         "mlp_discriminator": {
             "title": "MLP Discriminator",
             "description": (
-                "Using multilayer perceptron discriminators " "for complex confounding patterns"
+                "Using multilayer perceptron discriminators for complex confounding patterns"
             ),
             "category": "basic",
         },
         "diagnostics_demo": {
             "title": "Comprehensive Diagnostics",
             "description": (
-                "Complete diagnostic workflow with ROC curves, " "calibration, and balance reports"
+                "Complete diagnostic workflow with ROC curves, calibration, and balance reports"
             ),
             "category": "diagnostics",
         },

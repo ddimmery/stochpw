@@ -1,6 +1,6 @@
 """Visualization utilities for permutation weighting diagnostics."""
 
-from typing import Optional
+from typing import Any
 
 import jax.numpy as jnp
 import pandas as pd
@@ -33,8 +33,8 @@ def plot_balance_diagnostics(
     X: Array,
     A: Array,
     weights: Array,
-    unweighted_weights: Optional[Array] = None,
-    feature_names: Optional[list[str]] = None,
+    unweighted_weights: Array | None = None,
+    feature_names: list[str] | None = None,
 ):
     """
     Create balance diagnostic plot with standard errors.
@@ -142,7 +142,7 @@ def plot_weight_distribution(weights: Array):
         + geom_histogram(bins=50, fill="steelblue", alpha=0.7, color="black")
         + geom_vline(xintercept=mean_weight, linetype="dashed", color="red")
         + labs(
-            title=f"Weight Distribution (ESS: {ess:.0f}/{n}, Ratio: {ess/n:.2%})",
+            title=f"Weight Distribution (ESS: {ess:.0f}/{n}, Ratio: {ess / n:.2%})",
             x="Weight",
             y="Frequency",
         )
@@ -152,7 +152,7 @@ def plot_weight_distribution(weights: Array):
     return p
 
 
-def plot_training_history(history: dict):
+def plot_training_history(history: dict[str, Any]):
     """
     Plot training loss and other metrics over epochs.
 
@@ -233,7 +233,7 @@ def plot_calibration_curve(
     return p
 
 
-def plot_roc_curve(fpr: Array, tpr: Array, auc: Optional[float] = None):
+def plot_roc_curve(fpr: Array, tpr: Array, auc: float | None = None):
     """
     Plot ROC curve for discriminator performance evaluation.
 

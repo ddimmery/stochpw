@@ -1,6 +1,6 @@
 """Weight extraction utilities for permutation weighting."""
 
-from typing import Callable
+from typing import Any, Callable
 
 import jax
 import jax.numpy as jnp
@@ -8,8 +8,8 @@ from jax import Array
 
 
 def extract_weights(
-    discriminator_fn: Callable,
-    params: dict,
+    discriminator_fn: Callable[[dict[str, Any], Array, Array, Array], Array],
+    params: dict[str, Any],
     X: Array,
     A: Array,
     AX: Array,

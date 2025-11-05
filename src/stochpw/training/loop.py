@@ -1,21 +1,21 @@
 """Training loop for permutation weighting discriminators."""
 
-from typing import Callable
+from typing import Any, Callable
 
 import jax
 import jax.numpy as jnp
 import optax
 from jax import Array
 
-from ..data import TrainingState, TrainingStepResult
+from ..data import TrainingBatch, TrainingState, TrainingStepResult
 from .batch import create_training_batch
 from .losses import logistic_loss
 
 
 def train_step(
     state: TrainingState,
-    batch,
-    discriminator_fn: Callable,
+    batch: TrainingBatch,
+    discriminator_fn: Callable[[dict[str, Any], Array, Array, Array], Array],
     optimizer: optax.GradientTransformation,
     loss_fn_type: Callable[[Array, Array], Array] = logistic_loss,
     regularization_fn: Callable[[Array], Array] | None = None,
@@ -52,7 +52,7 @@ def train_step(
         Updated state and loss value
     """
 
-    def loss_fn(params):
+    def loss_fn(params: Any) -> Array:
         logits = discriminator_fn(params, batch.A, batch.X, batch.AX)
         loss = loss_fn_type(logits, batch.C)
 
@@ -90,8 +90,8 @@ def train_step(
 def fit_discriminator(
     X: Array,
     A: Array,
-    discriminator_fn: Callable,
-    init_params: dict,
+    discriminator_fn: Callable[[dict[str, Any], Array, Array, Array], Array],
+    init_params: dict[str, Any],
     optimizer: optax.GradientTransformation,
     num_epochs: int,
     batch_size: int,
@@ -103,7 +103,7 @@ def fit_discriminator(
     patience: int = 10,
     min_delta: float = 1e-4,
     eps: float = 1e-7,
-) -> tuple[dict, dict]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Complete training loop for discriminator.
 

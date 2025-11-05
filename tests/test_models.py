@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 import pytest
+
 from stochpw.models import LinearDiscriminator, MLPDiscriminator
 from stochpw.models.mlp import _get_activation
 

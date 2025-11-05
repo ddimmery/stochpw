@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 from plotnine import ggplot
+
 from stochpw.plotting import (
     plot_balance_diagnostics,
     plot_calibration_curve,

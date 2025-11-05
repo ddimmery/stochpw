@@ -5,8 +5,6 @@ from typing import Any
 
 from jax import Array
 
-PyTree = Any  # Type alias for JAX PyTree
-
 
 @dataclass(frozen=True)
 class TrainingBatch:
@@ -31,11 +29,11 @@ class WeightedData:
 class TrainingState:
     """State of the training process."""
 
-    params: PyTree  # Model parameters
+    params: Any  # Model parameters (JAX PyTree - can be dict, nested dict, etc.)
     opt_state: Any  # Optimizer state (Optax OptState)
     rng_key: Array  # RNG key for reproducibility
     epoch: int  # Current epoch
-    history: dict  # Training history
+    history: dict[str, list[float]]  # Training history
 
 
 @dataclass(frozen=True)

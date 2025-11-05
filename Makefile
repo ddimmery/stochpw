@@ -7,7 +7,7 @@ serve:
 	PYTHONPATH=src uv run python -m mkdocs serve
 
 typecheck:
-	uv run python -m pyright src/ examples/
+	uv run python -m basedpyright src/ examples/
 
 lint:
 	uv run ruff check --fix && uv run ruff format

@@ -1,8 +1,11 @@
 """Utility functions for input validation and data handling."""
 
+from typing import Any
+
 import jax.numpy as jnp
 import numpy as np
 from jax import Array
+from numpy.typing import NDArray
 
 
 def _check_array_validity(arr: Array, name: str) -> None:
@@ -17,12 +20,11 @@ def _validate_treatment_variation(A: Array) -> None:
         unique_vals = jnp.unique(A)
         if len(unique_vals) < 2:
             raise ValueError(
-                f"A must have at least 2 unique values for discrimination, "
-                f"found {len(unique_vals)}"
+                f"A must have at least 2 unique values for discrimination, found {len(unique_vals)}"
             )
 
 
-def validate_inputs(X: Array | np.ndarray, A: Array | np.ndarray) -> tuple[Array, Array]:
+def validate_inputs(X: Array | NDArray[Any], A: Array | NDArray[Any]) -> tuple[Array, Array]:
     """
     Validate and convert inputs to JAX arrays.
 
@@ -52,41 +54,40 @@ def validate_inputs(X: Array | np.ndarray, A: Array | np.ndarray) -> tuple[Array
         If inputs are invalid (incompatible shapes, NaNs, no variation, etc.)
     """
     # Convert to JAX arrays if needed
-    if isinstance(X, np.ndarray):
-        X = jnp.array(X)
-    if isinstance(A, np.ndarray):
-        A = jnp.array(A)
+    x_jax = jnp.array(X) if isinstance(X, np.ndarray) else X
+    a_jax = jnp.array(A) if isinstance(A, np.ndarray) else A
 
     # Check shapes
-    if X.ndim != 2:
-        raise ValueError(f"X must be 2-dimensional, got shape {X.shape}")
+    if x_jax.ndim != 2:
+        raise ValueError(f"X must be 2-dimensional, got shape {x_jax.shape}")
 
     # Ensure A is at least 1D
-    if A.ndim == 0:
+    if a_jax.ndim == 0:
         raise ValueError("A must be at least 1-dimensional, got scalar")
-    if A.ndim == 1:
-        A = A.reshape(-1, 1)  # Make it (n, 1) for consistency
-    if A.ndim > 2:
-        raise ValueError(f"A must be 1 or 2-dimensional, got shape {A.shape}")
+    if a_jax.ndim == 1:
+        a_jax = a_jax.reshape(-1, 1)  # Make it (n, 1) for consistency
+    if a_jax.ndim > 2:
+        raise ValueError(f"A must be 1 or 2-dimensional, got shape {a_jax.shape}")
 
     # Check number of samples match
-    if X.shape[0] != A.shape[0]:
+    if x_jax.shape[0] != a_jax.shape[0]:
         raise ValueError(
-            f"X and A must have same number of samples: " f"X has {X.shape[0]}, A has {A.shape[0]}"
+            "X and A must have same number of samples: "
+            + f"X has {x_jax.shape[0]}, A has {a_jax.shape[0]}"
         )
 
     # Check for NaNs or Infs
-    _check_array_validity(X, "X")
-    _check_array_validity(A, "A")
+    _check_array_validity(x_jax, "X")
+    _check_array_validity(a_jax, "A")
 
     # Check for sufficient variation in A
-    _validate_treatment_variation(A)
+    _validate_treatment_variation(a_jax)
 
     # Check minimum sample size
-    if X.shape[0] < 10:
-        raise ValueError(f"Need at least 10 samples for training, got {X.shape[0]}")
+    if x_jax.shape[0] < 10:
+        raise ValueError(f"Need at least 10 samples for training, got {x_jax.shape[0]}")
 
-    return X, A
+    return x_jax, a_jax
 
 
 def permute_treatment(A: Array, rng_key: Array) -> Array:
