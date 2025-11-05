@@ -16,22 +16,35 @@ Programs with Experimental Data". The American Economic Review, 76(4), 604-620.
 ```python
 import time
 from pathlib import Path
+from typing import TypedDict
 
 import jax.numpy as jnp
 import numpy as np
+from jax import Array
+
 from stochpw import (
     MLPDiscriminator,
     PermutationWeighter,
     effective_sample_size,
     standardized_mean_difference,
 )
+
+
+class LalondeData(TypedDict):
+    """Type definition for Lalonde dataset."""
+
+    X: Array
+    A: Array
+    Y: Array
+    feature_names: list[str]
+    ate_benchmark: float
 ```
 
 ## Helper Functions
 
 
 ```python
-def load_lalonde_nsw():
+def load_lalonde_nsw() -> LalondeData:
     """
     Load the Lalonde NSW (National Supported Work) observational dataset.
 
@@ -75,9 +88,9 @@ def load_lalonde_nsw():
 
     if data_file is None:
         raise FileNotFoundError(
-            "Data file not found. Tried:\n" +
-            "\n".join(f"  - {p}" for p in possible_paths) +
-            "\n\nPlease ensure nsw_data.csv is in the examples/ directory."
+            "Data file not found. Tried:\n"
+            + "\n".join(f"  - {p}" for p in possible_paths)
+            + "\n\nPlease ensure nsw_data.csv is in the examples/ directory."
         )
 
     # Load data
@@ -113,7 +126,7 @@ def load_lalonde_nsw():
     }
 
 
-def estimate_ate(Y, A, weights):
+def estimate_ate(Y: Array, A: Array, weights: Array) -> float:
     """
     Estimate the average treatment effect (ATE) using weighted means.
 
@@ -127,19 +140,19 @@ def estimate_ate(Y, A, weights):
     Returns:
         float: Estimated ATE
     """
-    Y = Y.flatten()
-    A = A.flatten()
+    y_flat = Y.flatten()
+    a_flat = A.flatten()
 
-    treated_mask = A == 1
-    control_mask = A == 0
+    treated_mask = a_flat == 1
+    control_mask = a_flat == 0
 
     # Weighted mean for treated
-    weighted_y1 = jnp.sum(Y[treated_mask] * weights[treated_mask])
+    weighted_y1 = jnp.sum(y_flat[treated_mask] * weights[treated_mask])
     weighted_n1 = jnp.sum(weights[treated_mask])
     mean_y1 = weighted_y1 / weighted_n1
 
     # Weighted mean for control
-    weighted_y0 = jnp.sum(Y[control_mask] * weights[control_mask])
+    weighted_y0 = jnp.sum(y_flat[control_mask] * weights[control_mask])
     weighted_n0 = jnp.sum(weights[control_mask])
     mean_y0 = weighted_y0 / weighted_n0
 
@@ -193,9 +206,9 @@ print(f"  Covariate names: {', '.join(feature_names)}")
 
 
 ```python
-print(f"\n{'='*70}")
+print(f"\n{'=' * 70}")
 print("Experimental Benchmark (Ground Truth)")
-print(f"{'='*70}")
+print(f"{'=' * 70}")
 print(f"  Experimental ATE: ${ate_benchmark:.2f}")
 print("  (From the original randomized controlled trial)")
 ```
@@ -212,9 +225,9 @@ print("  (From the original randomized controlled trial)")
 
 
 ```python
-print(f"\n{'='*70}")
+print(f"\n{'=' * 70}")
 print("Naive Estimate (No Adjustment)")
-print(f"{'='*70}")
+print(f"{'=' * 70}")
 
 weights_naive = jnp.ones(len(X))
 ate_naive = estimate_ate(Y, A, weights_naive)
@@ -265,9 +278,9 @@ for i, (name, smd_val) in enumerate(zip(feature_names, smd_naive)):
 
 
 ```python
-print(f"\n{'='*70}")
+print(f"\n{'=' * 70}")
 print("Permutation Weighting (Simple MLP)")
-print(f"{'='*70}")
+print(f"{'=' * 70}")
 
 # Fit with a simple MLP architecture
 mlp_simple = MLPDiscriminator(hidden_dims=[3])
@@ -279,7 +292,7 @@ weighter_simple = PermutationWeighter(
 )
 
 print("\nFitting weighter...")
-weighter_simple.fit(X, A)
+_ = weighter_simple.fit(X, A)
 weights_simple = weighter_simple.predict(X, A)
 
 # Estimate ATE
@@ -294,9 +307,7 @@ print(f"  Error: ${pw_error_simple:.2f} ({pw_pct_error_simple:+.1f}%)")
 smd_pw_simple = standardized_mean_difference(X, A, weights_simple)
 print("\n  Covariate balance after weighting:")
 print(f"    Max |SMD|: {jnp.abs(smd_pw_simple).max():.3f}")
-balance_improvement = (
-    1 - jnp.abs(smd_pw_simple).max() / jnp.abs(smd_naive).max()
-) * 100
+balance_improvement = (1 - jnp.abs(smd_pw_simple).max() / jnp.abs(smd_naive).max()) * 100
 print(f"    Balance improvement: {balance_improvement:.1f}%")
 
 # ESS
@@ -315,26 +326,24 @@ print(f"    ESS: {ess_simple:.0f} / {len(weights_simple)} ({ess_ratio_simple:.1%
 
 
     
-      Permutation-weighted ATE: $5232.60
-      Error: $3438.60 (+191.7%)
+      Permutation-weighted ATE: $2512.67
+      Error: $718.67 (+40.1%)
     
       Covariate balance after weighting:
-        Max |SMD|: 0.767
-        Balance improvement: 14.6%
-
-
+        Max |SMD|: 3.033
+        Balance improvement: -237.5%
     
       Effective sample size:
-        ESS: 240 / 458 (52.4%)
+        ESS: 56 / 458 (12.2%)
 
 
 ## Permutation Weighting with Larger MLP
 
 
 ```python
-print(f"\n{'='*70}")
+print(f"\n{'=' * 70}")
 print("Permutation Weighting (Larger MLP)")
-print(f"{'='*70}")
+print(f"{'=' * 70}")
 
 # Try a larger architecture
 mlp_large = MLPDiscriminator(hidden_dims=[32, 16])
@@ -346,7 +355,7 @@ weighter_large = PermutationWeighter(
 )
 
 print("\nFitting weighter...")
-weighter_large.fit(X, A)
+_ = weighter_large.fit(X, A)
 weights_large = weighter_large.predict(X, A)
 
 # Estimate ATE
@@ -361,9 +370,7 @@ print(f"  Error: ${pw_error_large:.2f} ({pw_pct_error_large:+.1f}%)")
 smd_pw_large = standardized_mean_difference(X, A, weights_large)
 print("\n  Covariate balance after weighting:")
 print(f"    Max |SMD|: {jnp.abs(smd_pw_large).max():.3f}")
-balance_improvement_large = (
-    1 - jnp.abs(smd_pw_large).max() / jnp.abs(smd_naive).max()
-) * 100
+balance_improvement_large = (1 - jnp.abs(smd_pw_large).max() / jnp.abs(smd_naive).max()) * 100
 print(f"    Balance improvement: {balance_improvement_large:.1f}%")
 
 # ESS
@@ -382,50 +389,50 @@ print(f"    ESS: {ess_large:.0f} / {len(weights_large)} ({ess_ratio_large:.1%})"
 
 
     
-      Permutation-weighted ATE: $1734.75
-      Error: $-59.25 (-3.3%)
+      Permutation-weighted ATE: $-633.69
+      Error: $-2427.69 (-135.3%)
     
       Covariate balance after weighting:
-        Max |SMD|: 30.765
-        Balance improvement: -3323.7%
+        Max |SMD|: 7.756
+        Balance improvement: -763.2%
     
       Effective sample size:
-        ESS: 1 / 458 (0.2%)
+        ESS: 2 / 458 (0.5%)
 
 
 ## Summary Comparison
 
 
 ```python
-print(f"\n{'='*70}")
+print(f"\n{'=' * 70}")
 print("Summary Comparison")
-print(f"{'='*70}")
+print(f"{'=' * 70}")
 
 print(f"\n{'Method':<30} {'ATE Estimate':<15} {'Error':<15} {'% Error':<12}")
 print("-" * 72)
 print(f"{'Experimental (Benchmark)':<30} ${ate_benchmark:>12.2f}   {'---':>12}   {'---':>12}")
 print(
     f"{'Naive (Unadjusted)':<30} ${ate_naive:>12.2f}  "
-    f"${naive_error:>12.2f}  {naive_pct_error:>10.1f}%"
+    + f"${naive_error:>12.2f}  {naive_pct_error:>10.1f}%"
 )
 print(
     f"{'PW (Simple MLP)':<30} ${ate_pw_simple:>12.2f}  "
-    f"${pw_error_simple:>12.2f}  {pw_pct_error_simple:>10.1f}%"
+    + f"${pw_error_simple:>12.2f}  {pw_pct_error_simple:>10.1f}%"
 )
 print(
     f"{'PW (Larger MLP)':<30} ${ate_pw_large:>12.2f}  "
-    f"${pw_error_large:>12.2f}  {pw_pct_error_large:>10.1f}%"
+    + f"${pw_error_large:>12.2f}  {pw_pct_error_large:>10.1f}%"
 )
 
 print("\n  Improvement over naive:")
 improvement_over_naive = abs(naive_error) - abs(pw_error_simple)
 print(f"\n  Improvement over naive: ${improvement_over_naive:.2f}")
 
-print(f"\n{'='*70}")
+print(f"\n{'=' * 70}")
 print("✓ Lalonde experiment completed successfully!")
 elapsed_time = time.time() - start_time
 print(f"⏱  Total execution time: {elapsed_time:.2f} seconds")
-print(f"{'='*70}")
+print(f"{'=' * 70}")
 ```
 
     
@@ -437,16 +444,16 @@ print(f"{'='*70}")
     ------------------------------------------------------------------------
     Experimental (Benchmark)       $     1794.00            ---            ---
     Naive (Unadjusted)             $     4224.48  $     2430.48       135.5%
-    PW (Simple MLP)                $     5232.60  $     3438.60       191.7%
-    PW (Larger MLP)                $     1734.75  $      -59.25        -3.3%
+    PW (Simple MLP)                $     2512.67  $      718.67        40.1%
+    PW (Larger MLP)                $     -633.69  $    -2427.69      -135.3%
     
       Improvement over naive:
     
-      Improvement over naive: $-1008.12
+      Improvement over naive: $1711.81
     
     ======================================================================
     ✓ Lalonde experiment completed successfully!
-    ⏱  Total execution time: 11.62 seconds
+    ⏱  Total execution time: 14.95 seconds
     ======================================================================
 
 

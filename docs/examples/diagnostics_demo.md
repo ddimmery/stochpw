@@ -15,6 +15,7 @@ import time
 import jax
 import jax.numpy as jnp
 import optax
+
 from stochpw import (
     PermutationWeighter,
     balance_report,
@@ -35,10 +36,10 @@ from stochpw.plotting import (
 
 
 ```python
-def generate_confounded_data(n=1000, seed=42):
+def generate_confounded_data(n: int = 1000, seed: int = 42):
     """Generate synthetic data with treatment-covariate confounding."""
     key = jax.random.PRNGKey(seed)
-    key1, key2, key3 = jax.random.split(key, 3)
+    key1, key2, _key3 = jax.random.split(key, 3)
 
     # Generate covariates
     X = jax.random.normal(key1, (n, 5))
@@ -48,6 +49,7 @@ def generate_confounded_data(n=1000, seed=42):
     A = (jax.random.uniform(key2, (n,)) < propensity).astype(float)
 
     return X, A
+
 
 start_time = time.time()
 
@@ -68,7 +70,7 @@ print(f"Treatment balance: {jnp.mean(A):.2%} treated")
 
     
     Generated data: X.shape=(1000, 5), A.shape=(1000,)
-    Treatment balance: 42.00% treated
+    Treatment balance: 44.10% treated
 
 
 ## Step 1: Initial Balance Assessment
@@ -98,8 +100,8 @@ print(f"Number of samples: {initial_report['n_samples']}")
 
 
     
-    Initial max SMD: 1.1620
-    Initial mean SMD: 0.3523
+    Initial max SMD: 1.1802
+    Initial mean SMD: 0.4308
 
 
     
@@ -117,14 +119,9 @@ print("Step 2: Fit Permutation Weighter")
 print("=" * 70)
 
 opt = optax.rmsprop(learning_rate=0.1)
-weighter = PermutationWeighter(
-    num_epochs=50,
-    batch_size=250,
-    random_state=42,
-    optimizer=opt
-)
+weighter = PermutationWeighter(num_epochs=50, batch_size=250, random_state=42, optimizer=opt)
 
-weighter.fit(X, A)
+_ = weighter.fit(X, A)
 weights = weighter.predict(X, A)
 
 assert weighter.history_ is not None
@@ -140,7 +137,7 @@ print(f"Final training loss: {weighter.history_['loss'][-1]:.4f}")
 
     
     Training completed in 50 epochs
-    Final training loss: 0.6504
+    Final training loss: 0.6573
 
 
 ## Step 3: Balance After Weighting
@@ -169,12 +166,12 @@ print(f"ESS Ratio: {final_report['ess_ratio']:.2%}")
     Step 3: Balance After Weighting
     ======================================================================
     
-    Final max SMD: 0.2745
-    Final mean SMD: 0.0849
-    SMD improvement: 76.4%
+    Final max SMD: 0.4051
+    Final mean SMD: 0.1781
+    SMD improvement: 65.7%
     
-    Effective Sample Size: 733 / 1000
-    ESS Ratio: 73.28%
+    Effective Sample Size: 724 / 1000
+    ESS Ratio: 72.38%
 
 
 ## Step 4: Weight Distribution Analysis
@@ -204,13 +201,13 @@ print(f"  N extreme (>10x mean): {w_stats['n_extreme']}")
     ======================================================================
     
     Weight Statistics:
-      Mean: 1.015
-      Std: 0.613
-      Min: 0.095
-      Max: 5.158
-      CV (std/mean): 0.604
-      Max/Min ratio: 54.3
-      Entropy: 6.750
+      Mean: 0.896
+      Std: 0.554
+      Min: 0.054
+      Max: 4.255
+      CV (std/mean): 0.618
+      Max/Min ratio: 79.5
+      Entropy: 6.741
       N extreme (>10x mean): 0
 
 
@@ -243,8 +240,7 @@ auc = float(jnp.trapezoid(tpr, fpr))
 
 print(f"\nROC AUC: {auc:.4f}")
 print(
-    "\nInterpretation: AUC measures discriminator's ability to distinguish "
-    "observed from permuted."
+    "\nInterpretation: AUC measures discriminator's ability to distinguish observed from permuted."
 )
 print("  AUC = 0.5: Random guessing (poor discriminator)")
 print("  AUC = 1.0: Perfect discrimination")
@@ -266,12 +262,12 @@ else:
 
 
     
-    ROC AUC: 0.6652
+    ROC AUC: 0.6853
     
     Interpretation: AUC measures discriminator's ability to distinguish observed from permuted.
       AUC = 0.5: Random guessing (poor discriminator)
       AUC = 1.0: Perfect discrimination
-      Current AUC = 0.6652: Poor discriminator quality - consider more epochs or larger model
+      Current AUC = 0.6853: Poor discriminator quality - consider more epochs or larger model
 
 
 ## Step 6: Discriminator Calibration
@@ -319,16 +315,16 @@ for pred, obs, count in zip(bin_centers, true_freqs, counts):
     Calibration Analysis (10 bins):
     Predicted    Observed     Count      Error     
     --------------------------------------------
-         0.050        0.000          1      0.050
-         0.150        0.231         26      0.081
-         0.250        0.331        148      0.081
-         0.350        0.344        299      0.006
-         0.450        0.437        492      0.013
-         0.550        0.495        477      0.055
-         0.650        0.614        345      0.036
-         0.750        0.812        149      0.062
-         0.850        0.918         61      0.068
-         0.950        1.000          2      0.050
+         0.050        0.375          8      0.325
+         0.150        0.333         63      0.183
+         0.250        0.311        180      0.061
+         0.350        0.358        344      0.008
+         0.450        0.421        518      0.029
+         0.550        0.535        400      0.015
+         0.650        0.687        297      0.037
+         0.750        0.808        146      0.058
+         0.850        0.970         33      0.120
+         0.950        1.000         11      0.050
 
 
 ## Step 7: Before/After Comparison
@@ -341,24 +337,25 @@ print("=" * 70)
 
 print(f"\n{'Metric':<30} {'Before':<15} {'After':<15} {'Improvement':<15}")
 print("-" * 75)
-max_smd_imp = (1 - final_report["max_smd"] / initial_report["max_smd"]) * 100
-mean_smd_imp = (1 - final_report["mean_smd"] / initial_report["mean_smd"]) * 100
-ess_change = (final_report["ess"] / initial_report["ess"] - 1) * 100
+# Type ignore needed because balance_report returns a union type
+max_smd_imp = (1 - float(final_report["max_smd"]) / float(initial_report["max_smd"])) * 100  # type: ignore[arg-type]
+mean_smd_imp = (1 - float(final_report["mean_smd"]) / float(initial_report["mean_smd"])) * 100  # type: ignore[arg-type]
+ess_change = (float(final_report["ess"]) / float(initial_report["ess"]) - 1) * 100  # type: ignore[arg-type]
 print(
     f"{'Max SMD':<30} {initial_report['max_smd']:>13.4f}  "
-    f"{final_report['max_smd']:>13.4f}  {max_smd_imp:>12.1f}%"
+    + f"{final_report['max_smd']:>13.4f}  {max_smd_imp:>12.1f}%"
 )
 print(
     f"{'Mean SMD':<30} {initial_report['mean_smd']:>13.4f}  "
-    f"{final_report['mean_smd']:>13.4f}  {mean_smd_imp:>12.1f}%"
+    + f"{final_report['mean_smd']:>13.4f}  {mean_smd_imp:>12.1f}%"
 )
 print(
     f"{'ESS':<30} {initial_report['ess']:>13.0f}  "
-    f"{final_report['ess']:>13.0f}  {ess_change:>12.1f}%"
+    + f"{final_report['ess']:>13.0f}  {ess_change:>12.1f}%"
 )
 print(
     f"{'ESS Ratio':<30} {initial_report['ess_ratio']:>13.2%}  "
-    f"{final_report['ess_ratio']:>13.2%}  {'-':>15}"
+    + f"{final_report['ess_ratio']:>13.2%}  {'-':>15}"
 )
 ```
 
@@ -369,10 +366,10 @@ print(
     
     Metric                         Before          After           Improvement    
     ---------------------------------------------------------------------------
-    Max SMD                               1.1620         0.2745          76.4%
-    Mean SMD                              0.3523         0.0849          75.9%
-    ESS                                     1000            733         -26.7%
-    ESS Ratio                            100.00%         73.28%                -
+    Max SMD                               1.1802         0.4051          65.7%
+    Mean SMD                              0.4308         0.1781          58.7%
+    ESS                                     1000            724         -27.6%
+    ESS Ratio                            100.00%         72.38%                -
 
 
 ## Step 8: Create Visualizations
@@ -420,22 +417,24 @@ print("=" * 70)
     ======================================================================
 
 
-    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:630: PlotnineWarning: Saving 8 x 8 in image.
-    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:631: PlotnineWarning: Filename: roc_curve.png
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:623: PlotnineWarning: Saving 8 x 8 in image.
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:624: PlotnineWarning: Filename: roc_curve.png
 
 
     
     ✓ Saved: roc_curve.png (MOST IMPORTANT DIAGNOSTIC)
 
 
-    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:630: PlotnineWarning: Saving 10 x 6 in image.
-    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:631: PlotnineWarning: Filename: balance_diagnostics.png
-    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:630: PlotnineWarning: Saving 8 x 6 in image.
-    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:631: PlotnineWarning: Filename: weight_distribution.png
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:623: PlotnineWarning: Saving 10 x 6 in image.
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:624: PlotnineWarning: Filename: balance_diagnostics.png
 
 
     ✓ Saved: balance_diagnostics.png (with 95% confidence intervals)
     ✓ Saved: weight_distribution.png
+
+
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:623: PlotnineWarning: Saving 8 x 6 in image.
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:624: PlotnineWarning: Filename: weight_distribution.png
 
 
     ✓ Saved: calibration_curve.png
@@ -444,12 +443,12 @@ print("=" * 70)
     
     ======================================================================
     Demo Complete!
-    Total execution time: 8.52 seconds
+    Total execution time: 16.03 seconds
     ======================================================================
 
 
-    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:630: PlotnineWarning: Saving 8 x 8 in image.
-    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:631: PlotnineWarning: Filename: calibration_curve.png
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:623: PlotnineWarning: Saving 8 x 8 in image.
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:624: PlotnineWarning: Filename: calibration_curve.png
 
 
 ---

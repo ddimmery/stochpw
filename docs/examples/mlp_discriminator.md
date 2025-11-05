@@ -14,6 +14,7 @@ import time
 
 import jax
 import jax.numpy as jnp
+
 from stochpw import MLPDiscriminator, PermutationWeighter, standardized_mean_difference
 ```
 
@@ -52,7 +53,7 @@ print(f"Treatment: {A.mean():.1%} treated (nonlinear confounding)")
     ======================================================================
     
     Data: 500 samples, 5 covariates
-    Treatment: 62.4% treated (nonlinear confounding)
+    Treatment: 62.8% treated (nonlinear confounding)
 
 
 ## Compare Linear vs MLP Discriminators
@@ -84,7 +85,7 @@ for name, discriminator in configs:
         random_state=42,
     )
 
-    weighter.fit(X, A)
+    _ = weighter.fit(X, A)
     weights = weighter.predict(X, A)
 
     # Calculate balance improvement
@@ -111,41 +112,41 @@ for name, discriminator in configs:
     ----------------------------------------
 
 
-      Max |SMD| (unweighted): 0.538
-      Max |SMD| (weighted):   0.318
-      Balance improvement:    40.8%
+      Max |SMD| (unweighted): 0.338
+      Max |SMD| (weighted):   1.419
+      Balance improvement:    -319.6%
     
     MLP (default):
     ----------------------------------------
 
 
-      Max |SMD| (unweighted): 0.538
-      Max |SMD| (weighted):   0.107
-      Balance improvement:    80.2%
+      Max |SMD| (unweighted): 0.338
+      Max |SMD| (weighted):   0.085
+      Balance improvement:    74.8%
     
     MLP (small):
     ----------------------------------------
 
 
-      Max |SMD| (unweighted): 0.538
-      Max |SMD| (weighted):   0.055
-      Balance improvement:    89.8%
+      Max |SMD| (unweighted): 0.338
+      Max |SMD| (weighted):   0.034
+      Balance improvement:    89.9%
     
     MLP (large):
     ----------------------------------------
 
 
-      Max |SMD| (unweighted): 0.538
-      Max |SMD| (weighted):   0.297
-      Balance improvement:    44.8%
+      Max |SMD| (unweighted): 0.338
+      Max |SMD| (weighted):   0.275
+      Balance improvement:    18.6%
     
     MLP (tanh):
     ----------------------------------------
 
 
-      Max |SMD| (unweighted): 0.538
-      Max |SMD| (weighted):   0.059
-      Balance improvement:    89.0%
+      Max |SMD| (unweighted): 0.338
+      Max |SMD| (weighted):   0.047
+      Balance improvement:    86.0%
 
 
 ## Summary Comparison
@@ -173,15 +174,15 @@ print("=" * 70)
     ======================================================================
     Model                Unweighted SMD     Weighted SMD    Improvement 
     ----------------------------------------------------------------------
-    Linear                         0.538           0.318         40.8%
-    MLP (default)                  0.538           0.107         80.2%
-    MLP (small)                    0.538           0.055         89.8%
-    MLP (large)                    0.538           0.297         44.8%
-    MLP (tanh)                     0.538           0.059         89.0%
+    Linear                         0.338           1.419       -319.6%
+    MLP (default)                  0.338           0.085         74.8%
+    MLP (small)                    0.338           0.034         89.9%
+    MLP (large)                    0.338           0.275         18.6%
+    MLP (tanh)                     0.338           0.047         86.0%
     
     ======================================================================
     ✓ Example completed successfully!
-    ⏱  Total execution time: 24.60 seconds
+    ⏱  Total execution time: 32.12 seconds
     ======================================================================
 
 

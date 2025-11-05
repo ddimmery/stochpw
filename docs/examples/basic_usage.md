@@ -13,6 +13,7 @@ import time
 import jax
 import jax.numpy as jnp
 import optax
+
 from stochpw import PermutationWeighter, effective_sample_size, standardized_mean_difference
 
 start_time = time.time()
@@ -39,7 +40,7 @@ print(f"Treatment distribution: {A.mean():.2%} treated")
 ```
 
     Generated data: 250 samples, 5 covariates
-    Treatment distribution: 58.00% treated
+    Treatment distribution: 63.60% treated
 
 
 ## Fit Permutation Weighter
@@ -49,7 +50,7 @@ print(f"Treatment distribution: {A.mean():.2%} treated")
 opt = optax.rmsprop(learning_rate=0.1)
 weighter = PermutationWeighter(num_epochs=20, batch_size=250 // 4, random_state=42, optimizer=opt)
 
-weighter.fit(X, A)
+_ = weighter.fit(X, A)
 weights = weighter.predict(X, A)
 
 print("Fitting complete!")
@@ -69,9 +70,9 @@ print(f"  Std: {weights.std():.3f}")
 ```
 
     Weight statistics:
-      Range: [0.270, 2.573]
-      Mean: 1.130
-      Std: 0.425
+      Range: [0.181, 3.177]
+      Mean: 0.896
+      Std: 0.369
 
 
 ## Effective Sample Size
@@ -85,7 +86,7 @@ print(f"  ESS: {ess:.1f} / {len(weights)} ({ess_ratio:.1%})")
 ```
 
     Effective sample size:
-      ESS: 219.0 / 250 (87.6%)
+      ESS: 213.8 / 250 (85.5%)
 
 
 ## Balance Assessment
@@ -106,9 +107,9 @@ print(f"  Improvement: {improvement:.1f}%")
 ```
 
     Standardized Mean Difference (SMD):
-      Max |SMD| (unweighted): 0.517
-      Max |SMD| (weighted):   0.079
-      Improvement: 84.8%
+      Max |SMD| (unweighted): 0.542
+      Max |SMD| (weighted):   0.086
+      Improvement: 84.1%
 
 
 ## Training History
@@ -130,13 +131,13 @@ print(f"  Last 10 losses: {[f'{loss:.2f}' for loss in loss_history[-10:]]}")
 ```
 
     Training history:
-      Initial loss: 0.7540
-      Final loss: 0.6894
-      Loss reduction: 8.6%
+      Initial loss: 0.8255
+      Final loss: 0.6854
+      Loss reduction: 17.0%
       Epochs: 20
     
-      First 10 losses: ['0.75', '0.70', '0.68', '0.69', '0.69', '0.69', '0.69', '0.69', '0.69', '0.70']
-      Last 10 losses: ['0.69', '0.69', '0.68', '0.70', '0.70', '0.70', '0.69', '0.69', '0.68', '0.69']
+      First 10 losses: ['0.83', '0.72', '0.69', '0.68', '0.70', '0.68', '0.68', '0.69', '0.70', '0.69']
+      Last 10 losses: ['0.68', '0.69', '0.69', '0.70', '0.70', '0.69', '0.70', '0.69', '0.69', '0.69']
 
 
 ## Summary
@@ -149,7 +150,7 @@ print(f"⏱  Total execution time: {elapsed_time:.2f} seconds")
 ```
 
     ✓ Example completed successfully!
-    ⏱  Total execution time: 3.59 seconds
+    ⏱  Total execution time: 5.83 seconds
 
 
 ---

@@ -12,6 +12,7 @@ import time
 
 import jax
 import jax.numpy as jnp
+
 from stochpw import (
     MLPDiscriminator,
     PermutationWeighter,
@@ -26,10 +27,10 @@ from stochpw import (
 
 
 ```python
-def generate_data(n=1000, seed=42):
+def generate_data(n: int = 1000, seed: int = 42):
     """Generate synthetic data with treatment-covariate confounding."""
     key = jax.random.PRNGKey(seed)
-    key1, key2, key3 = jax.random.split(key, 3)
+    key1, key2, _key3 = jax.random.split(key, 3)
 
     # Generate covariates
     X = jax.random.normal(key1, (n, 5))
@@ -39,6 +40,7 @@ def generate_data(n=1000, seed=42):
     A = (jax.random.uniform(key2, (n,)) < propensity).astype(float)[:, None]
 
     return X, A
+
 
 start_time = time.time()
 
@@ -64,7 +66,7 @@ print(f"Initial SMD: {jnp.max(jnp.abs(initial_smd)):.4f}")
     Generated data: X.shape=(1000, 5), A.shape=(1000, 1)
 
 
-    Initial SMD: 0.9872
+    Initial SMD: 0.8575
 
 
 ## 1. Default Configuration (Logistic Loss)
@@ -80,7 +82,7 @@ weighter_default = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_default.fit(X, A)
+_ = weighter_default.fit(X, A)
 weights_default = weighter_default.predict(X, A)
 smd_default = standardized_mean_difference(X, A, weights_default)
 
@@ -96,9 +98,9 @@ print(f"Final loss: {weighter_default.history_['loss'][-1]:.4f}")
     ============================================================
 
 
-    Final SMD: 0.5034
+    Final SMD: 0.8955
     Training epochs: 50
-    Final loss: 0.7007
+    Final loss: 0.7840
 
 
 ## 2. Alternative Loss: Exponential Loss
@@ -115,7 +117,7 @@ weighter_exp = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_exp.fit(X, A)
+_ = weighter_exp.fit(X, A)
 weights_exp = weighter_exp.predict(X, A)
 smd_exp = standardized_mean_difference(X, A, weights_exp)
 
@@ -130,8 +132,8 @@ print(f"Final loss: {weighter_exp.history_['loss'][-1]:.4f}")
     ============================================================
 
 
-    Final SMD: 0.6182
-    Final loss: 1.1258
+    Final SMD: 0.9809
+    Final loss: 1.7735
 
 
 ## 3. Alternative Loss: Brier Score
@@ -148,7 +150,7 @@ weighter_brier = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_brier.fit(X, A)
+_ = weighter_brier.fit(X, A)
 weights_brier = weighter_brier.predict(X, A)
 smd_brier = standardized_mean_difference(X, A, weights_brier)
 
@@ -163,8 +165,8 @@ print(f"Final loss: {weighter_brier.history_['loss'][-1]:.4f}")
     ============================================================
 
 
-    Final SMD: 0.4442
-    Final loss: 0.2504
+    Final SMD: 0.8714
+    Final loss: 0.2809
 
 
 ## 4. With Entropy Regularization
@@ -184,7 +186,7 @@ weighter_entropy_reg = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_entropy_reg.fit(X, A)
+_ = weighter_entropy_reg.fit(X, A)
 weights_entropy_reg = weighter_entropy_reg.predict(X, A)
 smd_entropy_reg = standardized_mean_difference(X, A, weights_entropy_reg)
 
@@ -196,7 +198,7 @@ weighter_no_reg = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_no_reg.fit(X, A)
+_ = weighter_no_reg.fit(X, A)
 weights_no_reg = weighter_no_reg.predict(X, A)
 
 # Compute negative entropy (penalty) for comparison
@@ -215,9 +217,9 @@ print("Higher entropy = more uniform weights (better ESS)")
     ============================================================
 
 
-    Final SMD: 0.1521
-    Weight entropy (with regularization): 6.77
-    Weight entropy (without regularization): 6.75
+    Final SMD: 0.1016
+    Weight entropy (with regularization): 6.78
+    Weight entropy (without regularization): 6.77
     Higher entropy = more uniform weights (better ESS)
 
 
@@ -237,7 +239,7 @@ weighter_early = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_early.fit(X, A)
+_ = weighter_early.fit(X, A)
 weights_early = weighter_early.predict(X, A)
 smd_early = standardized_mean_difference(X, A, weights_early)
 
@@ -253,9 +255,9 @@ print(f"Epochs saved: {200 - len(weighter_early.history_['loss'])}")
     ============================================================
 
 
-    Final SMD: 0.4851
-    Stopped at epoch: 77/200
-    Epochs saved: 123
+    Final SMD: 0.6395
+    Stopped at epoch: 106/200
+    Epochs saved: 94
 
 
 ## 6. All Features Combined
@@ -279,7 +281,7 @@ weighter_combined = PermutationWeighter(
     batch_size=128,
     random_state=42,
 )
-weighter_combined.fit(X, A)
+_ = weighter_combined.fit(X, A)
 weights_combined = weighter_combined.predict(X, A)
 smd_combined = standardized_mean_difference(X, A, weights_combined)
 
@@ -298,10 +300,10 @@ print(f"Weight entropy: {entropy_combined:.2f}")
     ============================================================
 
 
-    Final SMD: 0.2193
-    Stopped at epoch: 35/200
-    Final loss: 0.2107
-    Weight entropy: 6.80
+    Final SMD: 0.1120
+    Stopped at epoch: 29/200
+    Final loss: 0.2120
+    Weight entropy: 6.79
 
 
 ## Summary
@@ -330,17 +332,17 @@ print("=" * 60)
     ============================================================
     Summary: Balance Improvement
     ============================================================
-    Initial:                    0.9872
-    Default (logistic):         0.5034
-    Exponential loss:           0.6182
-    Brier loss:                 0.4442
-    With entropy regularization: 0.1521
-    With early stopping:        0.4851
-    All features combined:      0.2193
+    Initial:                    0.8575
+    Default (logistic):         0.8955
+    Exponential loss:           0.9809
+    Brier loss:                 0.8714
+    With entropy regularization: 0.1016
+    With early stopping:        0.6395
+    All features combined:      0.1120
     
     ============================================================
     ✓ Example completed successfully!
-    ⏱  Total execution time: 22.06 seconds
+    ⏱  Total execution time: 30.65 seconds
     ============================================================
 
 
