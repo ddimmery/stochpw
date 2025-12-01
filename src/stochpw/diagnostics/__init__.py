@@ -1,7 +1,11 @@
 """Diagnostic utilities for assessing balance and weight quality."""
 
 from .advanced import balance_report, calibration_curve, roc_curve, weight_statistics
-from .balance import standardized_mean_difference, standardized_mean_difference_se
+from .balance import (
+    maximum_mean_discrepancy,
+    standardized_mean_difference,
+    standardized_mean_difference_se,
+)
 from .weights import effective_sample_size
 
 __all__ = [
@@ -11,6 +15,7 @@ __all__ = [
     # Balance diagnostics
     "standardized_mean_difference",
     "standardized_mean_difference_se",
+    "maximum_mean_discrepancy",
     "balance_report",
     # Advanced diagnostics
     "calibration_curve",
