@@ -182,7 +182,7 @@ print("=" * 70)
     
     ======================================================================
     ✓ Example completed successfully!
-    ⏱  Total execution time: 32.12 seconds
+    ⏱  Total execution time: 35.52 seconds
     ======================================================================
 
 

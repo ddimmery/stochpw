@@ -4,11 +4,15 @@ import jax.numpy as jnp
 from jax import Array
 
 from ..data import TrainingBatch
-from ..utils import permute_treatment
+from .permutation import BasePermuter, RandomPermuter
 
 
 def create_training_batch(
-    X: Array, A: Array, batch_indices: Array, rng_key: Array
+    X: Array,
+    A: Array,
+    batch_indices: Array,
+    rng_key: Array,
+    permuter: BasePermuter | None = None,
 ) -> TrainingBatch:
     """
     Create a training batch with observed and permuted pairs.
@@ -26,21 +30,26 @@ def create_training_batch(
         Indices for this batch
     rng_key : jax.random.PRNGKey
         PRNG key for permutation
+    permuter : BasePermuter, optional
+        Permutation strategy. If None, uses RandomPermuter().
 
     Returns
     -------
     TrainingBatch
         Batch with concatenated observed and permuted data, including interactions
     """
+    # Use default permuter if not specified
+    if permuter is None:
+        permuter = RandomPermuter()
+
     # Sample observed batch
     X_obs = X[batch_indices]
     A_obs = A[batch_indices]
 
-    # Create permuted batch by shuffling treatments WITHIN the batch
+    # Create permuted batch using permuter
     # This creates the product distribution P(A)P(X) within the batch
     batch_size = len(batch_indices)
-    X_perm = X_obs  # Same covariates (not shuffled)
-    A_perm = permute_treatment(A_obs, rng_key)  # Shuffle treatments within batch
+    A_perm, X_perm = permuter.permute(A_obs, X_obs, rng_key)
 
     # Compute interactions: outer product A ⊗ X
     # For each sample, creates all A_i * X_j combinations

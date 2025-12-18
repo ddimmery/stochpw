@@ -6,7 +6,7 @@ import optax
 
 from stochpw.data import TrainingBatch, TrainingState
 from stochpw.models import LinearDiscriminator
-from stochpw.training import create_training_batch, fit_discriminator, logistic_loss, train_step
+from stochpw.training import LogisticLoss, create_training_batch, fit_discriminator, train_step
 
 
 class TestCreateTrainingBatch:
@@ -125,51 +125,56 @@ class TestCreateTrainingBatch:
 
 
 class TestLogisticLoss:
-    """Tests for logistic_loss function."""
+    """Tests for LogisticLoss class."""
 
     def test_perfect_prediction(self):
         """Test loss with perfect predictions."""
+        loss_fn = LogisticLoss()
         logits = jnp.array([10.0, -10.0])
         labels = jnp.array([1.0, 0.0])
 
-        loss = logistic_loss(logits, labels)
+        loss = loss_fn(logits, labels)
 
         assert loss < 0.01  # Should be very small
 
     def test_worst_prediction(self):
         """Test loss with worst predictions."""
+        loss_fn = LogisticLoss()
         logits = jnp.array([-10.0, 10.0])
         labels = jnp.array([1.0, 0.0])
 
-        loss = logistic_loss(logits, labels)
+        loss = loss_fn(logits, labels)
 
         assert loss > 5.0  # Should be large
 
     def test_neutral_prediction(self):
         """Test loss with neutral predictions (logits=0)."""
+        loss_fn = LogisticLoss()
         logits = jnp.array([0.0, 0.0])
         labels = jnp.array([1.0, 0.0])
 
-        loss = logistic_loss(logits, labels)
+        loss = loss_fn(logits, labels)
 
         # log(2) ≈ 0.693
         assert jnp.isclose(loss, jnp.log(2.0), atol=0.01)
 
     def test_loss_positive(self):
         """Test that loss is always positive."""
+        loss_fn = LogisticLoss()
         logits = jax.random.normal(jax.random.PRNGKey(0), (100,))
         labels = jax.random.bernoulli(jax.random.PRNGKey(1), 0.5, (100,))
 
-        loss = logistic_loss(logits, labels)
+        loss = loss_fn(logits, labels)
 
         assert loss >= 0.0
 
     def test_gradient_exists(self):
         """Test that gradient can be computed."""
+        loss_fn = LogisticLoss()
         logits = jnp.array([0.5, -0.5])
         labels = jnp.array([1.0, 0.0])
 
-        grad_fn = jax.grad(lambda logit: logistic_loss(logit, labels))
+        grad_fn = jax.grad(lambda logit: loss_fn(logit, labels))
         grads = grad_fn(logits)
 
         assert grads.shape == logits.shape
@@ -181,6 +186,8 @@ class TestTrainStep:
 
     def test_train_step_execution(self):
         """Test that train_step executes without error."""
+        from stochpw.training import LogisticLoss, NoRegularizer
+
         d_a, d_x = 1, 2
         discriminator = LinearDiscriminator()
 
@@ -207,13 +214,18 @@ class TestTrainStep:
             AX=jnp.ones((4, d_a * d_x)),
         )
 
-        result = train_step(state, batch, apply_fn, optimizer)
+        loss_fn = LogisticLoss()
+        regularizer = NoRegularizer()
+
+        result = train_step(state, batch, apply_fn, optimizer, loss_fn, regularizer)
 
         assert result.loss >= 0.0
         assert result.state.params is not None
 
     def test_parameters_updated(self):
         """Test that parameters are updated after train_step."""
+        from stochpw.training import LogisticLoss, NoRegularizer
+
         d_a, d_x = 1, 2
         discriminator = LinearDiscriminator()
 
@@ -238,7 +250,10 @@ class TestTrainStep:
             AX=jnp.array([[1.0, 2.0]]),
         )
 
-        result = train_step(state, batch, apply_fn, optimizer)
+        loss_fn = LogisticLoss()
+        regularizer = NoRegularizer()
+
+        result = train_step(state, batch, apply_fn, optimizer, loss_fn, regularizer)
 
         # Parameters should have changed
         assert not jnp.allclose(result.state.params["w_a"], original_params["w_a"])

@@ -27,6 +27,7 @@ def _validate_treatment_variation(A: Array) -> None:
 def validate_inputs(
     X: Array | NDArray[Any],  # type: ignore[misc]
     A: Array | NDArray[Any],  # type: ignore[misc]
+    require_treatment_variation: bool = True,
 ) -> tuple[Array, Array]:
     """
     Validate and convert inputs to JAX arrays.
@@ -34,7 +35,7 @@ def validate_inputs(
     Checks:
     - X and A have compatible shapes (same number of samples)
     - No NaNs or Infs
-    - Sufficient variation in A
+    - Sufficient variation in A (if require_treatment_variation=True)
     - Converts numpy arrays to JAX arrays if needed
 
     Parameters
@@ -43,6 +44,9 @@ def validate_inputs(
         Covariates
     A : array-like, shape (n_samples,) or (n_samples, n_treatments)
         Intervention/treatment assignments
+    require_treatment_variation : bool, default=True
+        Whether to check for treatment variation. Set to False when
+        predicting weights (e.g., for synthetic control with all treated).
 
     Returns
     -------
@@ -83,8 +87,9 @@ def validate_inputs(
     _check_array_validity(x_jax, "X")
     _check_array_validity(a_jax, "A")
 
-    # Check for sufficient variation in A
-    _validate_treatment_variation(a_jax)
+    # Check for sufficient variation in A (only if required)
+    if require_treatment_variation:
+        _validate_treatment_variation(a_jax)
 
     # Check minimum sample size
     if x_jax.shape[0] < 10:

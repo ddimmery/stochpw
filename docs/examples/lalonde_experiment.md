@@ -453,7 +453,7 @@ print(f"{'=' * 70}")
     
     ======================================================================
     ✓ Lalonde experiment completed successfully!
-    ⏱  Total execution time: 14.95 seconds
+    ⏱  Total execution time: 15.01 seconds
     ======================================================================
 
 

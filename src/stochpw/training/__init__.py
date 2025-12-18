@@ -1,9 +1,11 @@
 """Training utilities for permutation weighting discriminators."""
 
 from .batch import create_training_batch
+from .early_stopping import BaseEarlyStopping, EarlyStopping, NoEarlyStopping
 from .loop import fit_discriminator, train_step
-from .losses import brier_loss, exponential_loss, logistic_loss
-from .regularization import entropy_penalty, lp_weight_penalty
+from .losses import BaseLoss, BrierLoss, ExponentialLoss, LogisticLoss
+from .permutation import BasePermuter, RandomPermuter
+from .regularization import BaseRegularizer, EntropyRegularizer, LpRegularizer, NoRegularizer
 
 __all__ = [
     # Batch creation
@@ -12,10 +14,20 @@ __all__ = [
     "train_step",
     "fit_discriminator",
     # Loss functions
-    "logistic_loss",
-    "exponential_loss",
-    "brier_loss",
+    "BaseLoss",
+    "LogisticLoss",
+    "ExponentialLoss",
+    "BrierLoss",
     # Regularization
-    "entropy_penalty",
-    "lp_weight_penalty",
+    "BaseRegularizer",
+    "NoRegularizer",
+    "EntropyRegularizer",
+    "LpRegularizer",
+    # Early stopping
+    "BaseEarlyStopping",
+    "NoEarlyStopping",
+    "EarlyStopping",
+    # Permutation
+    "BasePermuter",
+    "RandomPermuter",
 ]

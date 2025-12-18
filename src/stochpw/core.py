@@ -1,6 +1,5 @@
 """Main API for permutation weighting."""
 
-from collections.abc import Callable
 from typing import Any
 
 import jax
@@ -10,8 +9,18 @@ from jax import Array
 from numpy.typing import NDArray
 
 from .models import BaseDiscriminator, LinearDiscriminator
-from .training import fit_discriminator, logistic_loss
-from .types import LossFn, PyTree
+from .training import (
+    BaseEarlyStopping,
+    BaseLoss,
+    BasePermuter,
+    BaseRegularizer,
+    LogisticLoss,
+    NoEarlyStopping,
+    NoRegularizer,
+    RandomPermuter,
+    fit_discriminator,
+)
+from .types import PyTree
 from .utils import validate_inputs
 from .weights import extract_weights
 
@@ -44,20 +53,18 @@ class PermutationWeighter:
         Mini-batch size for training
     random_state : int, optional
         Random seed for reproducibility
-    loss_fn : Callable, default=logistic_loss
-        Loss function (logits, labels) -> loss. Can be logistic_loss,
-        exponential_loss, or brier_loss.
-    regularization_fn : Callable, optional
-        Regularization function on weights (weights) -> penalty.
-        Use entropy_penalty or lp_weight_penalty (with p=1 or p=2).
-    regularization_strength : float, default=0.0
-        Strength of regularization penalty
-    early_stopping : bool, default=False
-        Whether to use early stopping based on training loss
-    patience : int, default=10
-        Number of epochs to wait for improvement before early stopping
-    min_delta : float, default=1e-4
-        Minimum change in loss to qualify as improvement for early stopping
+    loss : BaseLoss, optional
+        Loss function instance. If None, uses LogisticLoss().
+        Can be LogisticLoss, ExponentialLoss, BrierLoss, or custom loss.
+    regularizer : BaseRegularizer, optional
+        Regularization instance. If None, uses NoRegularizer().
+        Can be EntropyRegularizer, LpRegularizer, or custom regularizer.
+    early_stopping : BaseEarlyStopping, optional
+        Early stopping instance. If None, uses NoEarlyStopping().
+        Use EarlyStopping(patience=10, min_delta=1e-4) to enable early stopping.
+    permuter : BasePermuter, optional
+        Permutation strategy. If None, uses RandomPermuter().
+        Can be RandomPermuter or custom permuter.
 
     Attributes
     ----------
@@ -69,20 +76,34 @@ class PermutationWeighter:
     Examples
     --------
     >>> from stochpw import PermutationWeighter, LinearDiscriminator, MLPDiscriminator
+    >>> from stochpw.training import LogisticLoss, EarlyStopping, LpRegularizer
     >>> import jax.numpy as jnp
     >>>
     >>> # Generate synthetic data
     >>> X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0]])
     >>> A = jnp.array([[0.0], [1.0], [0.0]])
     >>>
-    >>> # Default: Linear discriminator
+    >>> # Default: Linear discriminator with logistic loss
     >>> weighter = PermutationWeighter(num_epochs=50, random_state=42)
     >>> weighter.fit(X, A)
     >>> weights = weighter.predict(X, A)
     >>>
-    >>> # MLP discriminator with custom architecture
+    >>> # With early stopping and regularization
+    >>> weighter = PermutationWeighter(
+    ...     early_stopping=EarlyStopping(patience=10, min_delta=1e-4),
+    ...     regularizer=LpRegularizer(p=2.0, strength=0.01),
+    ...     num_epochs=100,
+    ...     random_state=42,
+    ... )
+    >>> weighter.fit(X, A)
+    >>> weights = weighter.predict(X, A)
+    >>>
+    >>> # MLP discriminator with custom loss
+    >>> from stochpw.training import ExponentialLoss
     >>> mlp_disc = MLPDiscriminator(hidden_dims=[128, 64], activation="tanh")
-    >>> weighter = PermutationWeighter(discriminator=mlp_disc, num_epochs=50, random_state=42)
+    >>> weighter = PermutationWeighter(
+    ...     discriminator=mlp_disc, loss=ExponentialLoss(), num_epochs=50, random_state=42
+    ... )
     >>> weighter.fit(X, A)
     >>> weights = weighter.predict(X, A)
     """
@@ -94,12 +115,10 @@ class PermutationWeighter:
         num_epochs: int = 100,
         batch_size: int = 256,
         random_state: int | None = None,
-        loss_fn: LossFn = logistic_loss,
-        regularization_fn: Callable[[Array], Array] | None = None,
-        regularization_strength: float = 0.0,
-        early_stopping: bool = False,
-        patience: int = 10,
-        min_delta: float = 1e-4,
+        loss: BaseLoss | None = None,
+        regularizer: BaseRegularizer | None = None,
+        early_stopping: BaseEarlyStopping | None = None,
+        permuter: BasePermuter | None = None,
     ):
         self.discriminator: BaseDiscriminator = (
             discriminator if discriminator is not None else LinearDiscriminator()
@@ -108,12 +127,14 @@ class PermutationWeighter:
         self.num_epochs: int = num_epochs
         self.batch_size: int = batch_size
         self.random_state: int | None = random_state
-        self.loss_fn: LossFn = loss_fn
-        self.regularization_fn: Callable[[Array], Array] | None = regularization_fn
-        self.regularization_strength: float = regularization_strength
-        self.early_stopping: bool = early_stopping
-        self.patience: int = patience
-        self.min_delta: float = min_delta
+        self.loss: BaseLoss = loss if loss is not None else LogisticLoss()
+        self.regularizer: BaseRegularizer = (
+            regularizer if regularizer is not None else NoRegularizer()
+        )
+        self.early_stopping: BaseEarlyStopping = (
+            early_stopping if early_stopping is not None else NoEarlyStopping()
+        )
+        self.permuter: BasePermuter = permuter if permuter is not None else RandomPermuter()
 
         # Fitted attributes (set by fit())
         self.params_: PyTree | None = None
@@ -173,12 +194,10 @@ class PermutationWeighter:
             num_epochs=self.num_epochs,
             batch_size=self.batch_size,
             rng_key=train_key,
-            loss_fn=self.loss_fn,
-            regularization_fn=self.regularization_fn,
-            regularization_strength=self.regularization_strength,
+            loss_fn=self.loss,
+            regularizer=self.regularizer,
             early_stopping=self.early_stopping,
-            patience=self.patience,
-            min_delta=self.min_delta,
+            permuter=self.permuter,
         )
 
         return self
@@ -214,8 +233,8 @@ class PermutationWeighter:
                 + "Call 'fit' with appropriate arguments before using 'predict'."
             )
 
-        # Validate and convert inputs
-        x_val, a_val = validate_inputs(X, A)
+        # Validate and convert inputs (no need to check treatment variation for prediction)
+        x_val, a_val = validate_inputs(X, A, require_treatment_variation=False)
 
         # Compute interactions
         ax = jnp.einsum("bi,bj->bij", a_val, x_val).reshape(x_val.shape[0], -1)

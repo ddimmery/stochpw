@@ -427,14 +427,12 @@ print("=" * 70)
 
     /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:623: PlotnineWarning: Saving 10 x 6 in image.
     /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:624: PlotnineWarning: Filename: balance_diagnostics.png
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:623: PlotnineWarning: Saving 8 x 6 in image.
+    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:624: PlotnineWarning: Filename: weight_distribution.png
 
 
     ✓ Saved: balance_diagnostics.png (with 95% confidence intervals)
     ✓ Saved: weight_distribution.png
-
-
-    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:623: PlotnineWarning: Saving 8 x 6 in image.
-    /Users/drewd/GitHub/_packages/stochpw/.venv/lib/python3.12/site-packages/plotnine/ggplot.py:624: PlotnineWarning: Filename: weight_distribution.png
 
 
     ✓ Saved: calibration_curve.png
@@ -443,7 +441,7 @@ print("=" * 70)
     
     ======================================================================
     Demo Complete!
-    Total execution time: 16.03 seconds
+    Total execution time: 9.53 seconds
     ======================================================================
 
 

@@ -150,7 +150,7 @@ print(f"⏱  Total execution time: {elapsed_time:.2f} seconds")
 ```
 
     ✓ Example completed successfully!
-    ⏱  Total execution time: 5.83 seconds
+    ⏱  Total execution time: 4.06 seconds
 
 
 ---

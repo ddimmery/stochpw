@@ -64,6 +64,85 @@ Permutation weighting estimates density ratios by:
 
 3. **Using weights** for balancing weights in causal effect estimation
 
+## Advanced Usage
+
+### Alternative Loss Functions
+
+```python
+from stochpw import PermutationWeighter, ExponentialLoss, BrierLoss
+
+# Use exponential loss instead of default logistic
+weighter = PermutationWeighter(
+    loss=ExponentialLoss(),
+    num_epochs=100
+)
+```
+
+### Regularization
+
+```python
+from stochpw import EntropyRegularizer, LpRegularizer
+
+# Encourage more uniform weights with entropy regularization
+weighter = PermutationWeighter(
+    regularizer=EntropyRegularizer(eps=1e-7),
+    num_epochs=100
+)
+
+# Or use L2 penalty on weight deviations from 1
+weighter = PermutationWeighter(
+    regularizer=LpRegularizer(p=2.0, strength=0.01),
+    num_epochs=100
+)
+```
+
+### Early Stopping
+
+```python
+from stochpw import EarlyStopping
+
+# Stop training when loss plateaus
+weighter = PermutationWeighter(
+    early_stopping=EarlyStopping(patience=10, min_delta=1e-4),
+    num_epochs=200  # Will stop early if no improvement
+)
+```
+
+### Custom Discriminators
+
+```python
+from stochpw import MLPDiscriminator
+
+# Use MLP instead of linear discriminator
+mlp = MLPDiscriminator(hidden_dims=[128, 64], activation="tanh")
+weighter = PermutationWeighter(
+    discriminator=mlp,
+    num_epochs=100
+)
+```
+
+### Combining Features
+
+```python
+from stochpw import (
+    PermutationWeighter,
+    MLPDiscriminator,
+    BrierLoss,
+    EntropyRegularizer,
+    EarlyStopping,
+)
+
+weighter = PermutationWeighter(
+    discriminator=MLPDiscriminator(hidden_dims=[128, 64]),
+    loss=BrierLoss(),
+    regularizer=EntropyRegularizer(eps=1e-7),
+    early_stopping=EarlyStopping(patience=15, min_delta=1e-3),
+    num_epochs=200,
+    batch_size=128,
+    random_state=42
+)
+```
+
 ## Composable Design
 
 The package exposes low-level components for integration into larger models:
@@ -73,15 +152,16 @@ from stochpw import (
     BaseDiscriminator,
     LinearDiscriminator,
     MLPDiscriminator,
+    LogisticLoss,
     create_training_batch,
-    logistic_loss,
     extract_weights,
 )
 
 # Use in your custom architecture (e.g., DragonNet)
+loss_fn = LogisticLoss()
 batch = create_training_batch(X, A, batch_indices, rng_key)
 logits = my_discriminator(params, batch.A, batch.X, batch.AX)
-loss = logistic_loss(logits, batch.C)
+loss = loss_fn(logits, batch.C)
 ```
 
 ## Features

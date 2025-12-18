@@ -27,11 +27,12 @@ import jax
 import jax.numpy as jnp
 
 from stochpw import (
+    BrierLoss,
+    EarlyStopping,
+    EntropyRegularizer,
+    ExponentialLoss,
     MLPDiscriminator,
     PermutationWeighter,
-    brier_loss,
-    entropy_penalty,
-    exponential_loss,
     standardized_mean_difference,
 )
 
@@ -100,7 +101,7 @@ print("2. Alternative Loss: Exponential Loss")
 print("=" * 60)
 
 weighter_exp = PermutationWeighter(
-    loss_fn=exponential_loss,
+    loss=ExponentialLoss(),
     num_epochs=50,
     batch_size=128,
     random_state=42,
@@ -122,7 +123,7 @@ print("3. Alternative Loss: Brier Score")
 print("=" * 60)
 
 weighter_brier = PermutationWeighter(
-    loss_fn=brier_loss,
+    loss=BrierLoss(),
     num_epochs=50,
     batch_size=128,
     random_state=42,
@@ -144,10 +145,10 @@ print("4. With Entropy Regularization")
 print("=" * 60)
 
 mlp = MLPDiscriminator(hidden_dims=[64, 32])
+entropy_regularizer = EntropyRegularizer(eps=1e-7)
 weighter_entropy_reg = PermutationWeighter(
     discriminator=mlp,
-    regularization_fn=entropy_penalty,
-    regularization_strength=0.01,
+    regularizer=entropy_regularizer,
     num_epochs=50,
     batch_size=128,
     random_state=42,
@@ -168,8 +169,8 @@ _ = weighter_no_reg.fit(X, A)
 weights_no_reg = weighter_no_reg.predict(X, A)
 
 # Compute negative entropy (penalty) for comparison
-entropy_with_reg = -entropy_penalty(weights_entropy_reg)
-entropy_without_reg = -entropy_penalty(weights_no_reg)
+entropy_with_reg = -entropy_regularizer(weights_entropy_reg)
+entropy_without_reg = -entropy_regularizer(weights_no_reg)
 
 print(f"Final SMD: {jnp.max(jnp.abs(smd_entropy_reg)):.4f}")
 print(f"Weight entropy (with regularization): {entropy_with_reg:.2f}")
@@ -185,9 +186,7 @@ print("5. With Early Stopping")
 print("=" * 60)
 
 weighter_early = PermutationWeighter(
-    early_stopping=True,
-    patience=10,
-    min_delta=0.001,
+    early_stopping=EarlyStopping(patience=10, min_delta=0.001),
     num_epochs=200,  # Set high, but will stop early
     batch_size=128,
     random_state=42,
@@ -212,12 +211,9 @@ print("=" * 60)
 mlp_combined = MLPDiscriminator(hidden_dims=[128, 64, 32], activation="tanh")
 weighter_combined = PermutationWeighter(
     discriminator=mlp_combined,
-    loss_fn=brier_loss,
-    regularization_fn=entropy_penalty,
-    regularization_strength=0.005,
-    early_stopping=True,
-    patience=15,
-    min_delta=0.001,
+    loss=BrierLoss(),
+    regularizer=EntropyRegularizer(eps=1e-7),
+    early_stopping=EarlyStopping(patience=15, min_delta=0.001),
     num_epochs=200,
     batch_size=128,
     random_state=42,
@@ -231,7 +227,8 @@ assert weighter_combined.history_ is not None
 assert weighter_combined.params_ is not None
 print(f"Stopped at epoch: {len(weighter_combined.history_['loss'])}/200")
 print(f"Final loss: {weighter_combined.history_['loss'][-1]:.4f}")
-entropy_combined = -entropy_penalty(weights_combined)
+entropy_reg_combined = EntropyRegularizer(eps=1e-7)
+entropy_combined = -entropy_reg_combined(weights_combined)
 print(f"Weight entropy: {entropy_combined:.2f}")
 
 # %% [markdown]

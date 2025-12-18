@@ -342,7 +342,7 @@ print("=" * 60)
     
     ============================================================
     ✓ Example completed successfully!
-    ⏱  Total execution time: 30.65 seconds
+    ⏱  Total execution time: 34.55 seconds
     ============================================================
 
 

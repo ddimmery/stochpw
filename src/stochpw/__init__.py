@@ -28,13 +28,21 @@ from .models import BaseDiscriminator, LinearDiscriminator, MLPDiscriminator
 
 # Low-level components for composability
 from .training import (
-    brier_loss,
+    BaseEarlyStopping,
+    BaseLoss,
+    BasePermuter,
+    BaseRegularizer,
+    BrierLoss,
+    EarlyStopping,
+    EntropyRegularizer,
+    ExponentialLoss,
+    LogisticLoss,
+    LpRegularizer,
+    NoEarlyStopping,
+    NoRegularizer,
+    RandomPermuter,
     create_training_batch,
-    entropy_penalty,
-    exponential_loss,
     fit_discriminator,
-    logistic_loss,
-    lp_weight_penalty,
     train_step,
 )
 from .types import (
@@ -58,13 +66,25 @@ __all__ = [
     "NotFittedError",
     # Training utilities (for integration)
     "create_training_batch",
-    "logistic_loss",
-    "exponential_loss",
-    "brier_loss",
-    "entropy_penalty",
-    "lp_weight_penalty",
     "train_step",
     "fit_discriminator",
+    # Loss functions
+    "BaseLoss",
+    "LogisticLoss",
+    "ExponentialLoss",
+    "BrierLoss",
+    # Regularization
+    "BaseRegularizer",
+    "NoRegularizer",
+    "EntropyRegularizer",
+    "LpRegularizer",
+    # Early stopping
+    "BaseEarlyStopping",
+    "NoEarlyStopping",
+    "EarlyStopping",
+    # Permutation
+    "BasePermuter",
+    "RandomPermuter",
     # Weight extraction
     "extract_weights",
     # Discriminator models
