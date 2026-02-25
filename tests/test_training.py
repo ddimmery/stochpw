@@ -356,7 +356,7 @@ class TestFitDiscriminator:
 # --- Stochastic tests (pytest-stochastic) ---
 
 
-@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1), variance=0.01)
+@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1))
 def test_loss_decreases(rng):
     """Loss should generally decrease during training across random seeds."""
     seed = int(rng.integers(0, 2**31))

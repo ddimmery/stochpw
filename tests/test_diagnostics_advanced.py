@@ -278,7 +278,7 @@ class TestIntegrationWithPermutationWeighter:
 # --- Stochastic tests (pytest-stochastic) ---
 
 
-@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1), variance=0.01)
+@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1))
 def test_balance_report_after_fit(rng):
     """Balance should improve after permutation weighting across random seeds."""
     from stochpw import PermutationWeighter

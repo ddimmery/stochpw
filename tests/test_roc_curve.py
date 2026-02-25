@@ -111,7 +111,7 @@ class TestROCCurve:
 # --- Stochastic tests (pytest-stochastic) ---
 
 
-@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1), variance=0.01)
+@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1))
 def test_roc_curve_with_permutation_weighter(rng):
     """Trained discriminator AUC should be > 0.5 across random seeds."""
     import optax

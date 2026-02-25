@@ -390,7 +390,7 @@ class TestPermutationWeighter:
 # to provide rigorous statistical guarantees instead of fragile fixed-seed assertions.
 
 
-@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1), variance=0.01)
+@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1))
 def test_training_converges(rng):
     """Training should generally reduce loss across random seeds."""
     seed = int(rng.integers(0, 2**31))
@@ -413,7 +413,7 @@ def test_training_converges(rng):
     return float(weighter.history_["loss"][-1] < weighter.history_["loss"][0])
 
 
-@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1), variance=0.01)
+@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1))
 def test_balance_improvement(rng):
     """Permutation weights should improve covariate balance across random seeds."""
     seed = int(rng.integers(0, 2**31))
@@ -440,7 +440,7 @@ def test_balance_improvement(rng):
     return float(max_smd_w < max_smd_unw)
 
 
-@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1), variance=0.01)
+@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1))
 def test_mlp_vs_linear_convergence(rng):
     """Both MLP and linear discriminators should converge across random seeds."""
     seed = int(rng.integers(0, 2**31))
