@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 import optax
+from pytest_stochastic import stochastic_test
 
 from stochpw import balance_report, calibration_curve, weight_statistics
 
@@ -222,17 +223,14 @@ class TestBalanceReport:
 class TestIntegrationWithPermutationWeighter:
     """Test new diagnostics with PermutationWeighter."""
 
-    def test_balance_report_after_fit(self):
-        """Test balance report with actual permutation weighting."""
+    def test_balance_report_after_fit_fixed_seed(self):
+        """Test balance report with permutation weighting using a fixed seed (deterministic)."""
         from stochpw import PermutationWeighter
 
-        # Create confounded data
         key = jax.random.PRNGKey(42)
         X = jax.random.normal(key, (200, 5))
-        # Treatment depends on X[0]
         A = (X[:, 0] + jax.random.normal(key, (200,)) * 0.5 > 0).astype(float)
 
-        # Fit weighter
         weighter = PermutationWeighter(
             num_epochs=5,
             batch_size=50,
@@ -242,13 +240,10 @@ class TestIntegrationWithPermutationWeighter:
         weighter.fit(X, A)
         weights = weighter.predict(X, A)
 
-        # Generate balance report
         report_before = balance_report(X, A, jnp.ones(200))
         report_after = balance_report(X, A, weights)
 
-        # Balance should improve
         assert report_after["max_smd"] < report_before["max_smd"]
-        # ESS should be less than n (weights are not uniform)
         assert report_after["ess"] < 200
 
     def test_calibration_with_discriminator(self):
@@ -278,3 +273,32 @@ class TestIntegrationWithPermutationWeighter:
 
         assert bin_centers.shape == (5,)
         assert jnp.all(jnp.isfinite(true_freqs))
+
+
+# --- Stochastic tests (pytest-stochastic) ---
+
+
+@stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1), variance=0.01)
+def test_balance_report_after_fit(rng):
+    """Balance should improve after permutation weighting across random seeds."""
+    from stochpw import PermutationWeighter
+
+    seed = int(rng.integers(0, 2**31))
+    key = jax.random.PRNGKey(seed)
+    X = jax.random.normal(key, (200, 5))
+    key_noise = jax.random.PRNGKey(seed + 1)
+    A = (X[:, 0] + jax.random.normal(key_noise, (200,)) * 0.5 > 0).astype(float)
+
+    weighter = PermutationWeighter(
+        num_epochs=5,
+        batch_size=50,
+        random_state=seed + 2,
+        optimizer=optax.rmsprop(learning_rate=0.1),
+    )
+    weighter.fit(X, A)
+    weights = weighter.predict(X, A)
+
+    report_before = balance_report(X, A, jnp.ones(200))
+    report_after = balance_report(X, A, weights)
+
+    return float(report_after["max_smd"] < report_before["max_smd"])
