@@ -36,6 +36,10 @@ def pytest_configure(config):
         "markers",
         "jit: mark test as explicitly testing JAX JIT compilation (skipped with --no-jit)",
     )
+    config.addinivalue_line(
+        "markers",
+        "stochastic: mark test as stochastic (managed by pytest-stochastic)",
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)

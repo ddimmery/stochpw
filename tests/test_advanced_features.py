@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 import optax
+from pytest_stochastic import stochastic_test
 
 from stochpw import (
     BrierLoss,
@@ -245,43 +246,6 @@ class TestRegularization:
 class TestEarlyStopping:
     """Test early stopping functionality."""
 
-    def test_early_stopping_stops_before_max_epochs(self):
-        """Early stopping should terminate before max epochs when improvement stops."""
-        X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]] * 20)
-        A = jnp.array([[0.0], [1.0], [0.0], [1.0]] * 20)
-
-        weighter = PermutationWeighter(
-            early_stopping=EarlyStopping(patience=5, min_delta=0.1),
-            num_epochs=100,  # Set high, but should stop early
-            batch_size=40,
-            random_state=42,
-        )
-        weighter.fit(X, A)
-
-        # Should have stopped before 100 epochs due to min_delta threshold
-        assert weighter.history_ is not None
-        assert len(weighter.history_["loss"]) < 100
-        assert weighter.params_ is not None
-
-    def test_early_stopping_with_min_delta(self):
-        """Early stopping should respect min_delta parameter."""
-        X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]] * 20)
-        A = jnp.array([[0.0], [1.0], [0.0], [1.0]] * 20)
-
-        # Use a very high min_delta to trigger early stopping quickly
-        weighter = PermutationWeighter(
-            early_stopping=EarlyStopping(patience=3, min_delta=0.05),
-            num_epochs=100,
-            batch_size=16,
-            random_state=42,
-        )
-        weighter.fit(X, A)
-
-        # Should stop early due to high min_delta threshold
-        assert weighter.history_ is not None
-        assert len(weighter.history_["loss"]) < 100
-        assert weighter.params_ is not None
-
     def test_without_early_stopping_runs_all_epochs(self):
         """Without early stopping, should run all epochs."""
         X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]] * 20)
@@ -364,3 +328,43 @@ class TestCombinedFeatures:
         assert weights.shape == (80,)
         assert jnp.all(jnp.isfinite(weights))
         assert jnp.all(weights > 0)
+
+
+@stochastic_test(expected=0, side="less", variance=100, atol=10, failure_prob=1e-4)
+def test_early_stopping_stops_before_max_epochs(rng):
+    """Early stopping should terminate before max epochs when improvement stops."""
+    seed = int(rng.integers(0, 2**31))
+    X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]] * 20)
+    A = jnp.array([[0.0], [1.0], [0.0], [1.0]] * 20)
+
+    weighter = PermutationWeighter(
+        early_stopping=EarlyStopping(patience=5, min_delta=0.1),
+        num_epochs=100,
+        batch_size=40,
+        random_state=seed,
+    )
+    weighter.fit(X, A)
+
+    assert weighter.history_ is not None
+    assert weighter.params_ is not None
+    return float(len(weighter.history_["loss"]) - 100)
+
+
+@stochastic_test(expected=0, side="less", variance=100, atol=10, failure_prob=1e-4)
+def test_early_stopping_with_min_delta(rng):
+    """Early stopping should respect min_delta parameter."""
+    seed = int(rng.integers(0, 2**31))
+    X = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]] * 20)
+    A = jnp.array([[0.0], [1.0], [0.0], [1.0]] * 20)
+
+    weighter = PermutationWeighter(
+        early_stopping=EarlyStopping(patience=3, min_delta=0.05),
+        num_epochs=100,
+        batch_size=16,
+        random_state=seed,
+    )
+    weighter.fit(X, A)
+
+    assert weighter.history_ is not None
+    assert weighter.params_ is not None
+    return float(len(weighter.history_["loss"]) - 100)

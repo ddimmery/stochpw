@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 import pytest
+from pytest_stochastic import stochastic_test
 
 from stochpw import LinearDiscriminator, MLPDiscriminator, PermutationWeighter
 from stochpw.core import NotFittedError
@@ -174,52 +175,6 @@ class TestPermutationWeighter:
         assert weights.shape == (15,)
         assert jnp.all(weights > 0)
 
-    def test_training_converges(self):
-        """Test that training generally reduces loss."""
-        # Generate synthetic data with confounding
-        key = jax.random.PRNGKey(0)
-        n = 100
-        X = jax.random.normal(key, (n, 5))
-        propensity = jax.nn.sigmoid(0.5 * X[:, 0] - 0.3 * X[:, 1])
-        A = jax.random.bernoulli(jax.random.PRNGKey(1), propensity).astype(float)
-
-        weighter = PermutationWeighter(
-            num_epochs=10,
-            batch_size=32,
-            random_state=42,
-            optimizer=optax.rmsprop(learning_rate=0.1),
-        )
-        weighter.fit(X, A)
-
-        # Loss should generally decrease
-        assert weighter.history_ is not None
-        assert weighter.history_["loss"][-1] < weighter.history_["loss"][0]
-
-    def test_balance_improvement(self):
-        """Test that weights improve covariate balance."""
-        # Generate confounded data
-        key = jax.random.PRNGKey(0)
-        n = 100
-        X = jax.random.normal(key, (n, 3))
-        propensity = jax.nn.sigmoid(0.8 * X[:, 0] - 0.5 * X[:, 1])
-        A = jax.random.bernoulli(jax.random.PRNGKey(1), propensity).astype(float)
-        # Fit weighter
-        opt = optax.rmsprop(learning_rate=0.1)
-        weighter = PermutationWeighter(num_epochs=10, batch_size=50, random_state=42, optimizer=opt)
-        weighter.fit(X, A)
-        weights = weighter.predict(X, A)
-
-        # Check balance
-        smd_unweighted = standardized_mean_difference(X, A, jnp.ones_like(weights))
-        smd_weighted = standardized_mean_difference(X, A, weights)
-
-        max_smd_unw = jnp.abs(smd_unweighted).max()
-        max_smd_w = jnp.abs(smd_weighted).max()
-
-        # Weighted SMD should generally be lower (balance improved)
-        # Allow some tolerance since this is stochastic
-        assert max_smd_w < max_smd_unw * 1.2  # At most 20% worse
-
     def test_effective_sample_size(self):
         """Test that ESS is reasonable."""
         X = np.random.randn(20, 2)
@@ -380,35 +335,95 @@ class TestPermutationWeighter:
             assert weights.shape == (15,)
             assert jnp.all(weights > 0)
 
-    def test_mlp_vs_linear_convergence(self):
-        """Test that both MLP and linear discriminators converge."""
-        np.random.seed(123)  # Fix seed for reproducibility
-        X = np.random.randn(100, 3)  # Larger dataset for more reliable convergence
-        # Create imbalanced treatment based on X
-        A = (X[:, 0] + np.random.randn(100) * 0.3 > 0).astype(float)
 
-        # Linear discriminator
-        weighter_linear = PermutationWeighter(
-            discriminator=LinearDiscriminator(),
-            num_epochs=2,
-            batch_size=25,
-            random_state=42,
-            optimizer=optax.rmsprop(learning_rate=0.1),
-        )
-        weighter_linear.fit(X, A)
+@stochastic_test(expected=0, side="less", variance=0.1, atol=0.1, failure_prob=1e-4)
+def test_training_converges(rng):
+    """Test that training generally reduces loss."""
+    seed = int(rng.integers(0, 2**31))
+    key = jax.random.PRNGKey(seed)
+    k1, k2 = jax.random.split(key)
 
-        # MLP discriminator
-        weighter_mlp = PermutationWeighter(
-            discriminator=MLPDiscriminator(hidden_dims=[32, 16]),
-            num_epochs=2,
-            batch_size=25,
-            random_state=42,
-            optimizer=optax.rmsprop(learning_rate=0.1),
-        )
-        weighter_mlp.fit(X, A)
+    n = 100
+    X = jax.random.normal(k1, (n, 5))
+    propensity = jax.nn.sigmoid(0.5 * X[:, 0] - 0.3 * X[:, 1])
+    A = jax.random.bernoulli(k2, propensity).astype(float)
 
-        # Both should have decreasing loss
-        assert weighter_linear.history_ is not None
-        assert weighter_mlp.history_ is not None
-        assert weighter_linear.history_["loss"][-1] < weighter_linear.history_["loss"][0]
-        assert weighter_mlp.history_["loss"][-1] < weighter_mlp.history_["loss"][0]
+    weighter = PermutationWeighter(
+        num_epochs=10,
+        batch_size=32,
+        random_state=seed,
+        optimizer=optax.rmsprop(learning_rate=0.1),
+    )
+    weighter.fit(X, A)
+
+    assert weighter.history_ is not None
+    return float(weighter.history_["loss"][-1] - weighter.history_["loss"][0])
+
+
+@stochastic_test(expected=0, side="less", variance=1.0, atol=0.5, failure_prob=1e-4)
+def test_balance_improvement(rng):
+    """Test that weights improve covariate balance."""
+    seed = int(rng.integers(0, 2**31))
+    key = jax.random.PRNGKey(seed)
+    k1, k2 = jax.random.split(key)
+
+    n = 100
+    X = jax.random.normal(k1, (n, 3))
+    propensity = jax.nn.sigmoid(0.8 * X[:, 0] - 0.5 * X[:, 1])
+    A = jax.random.bernoulli(k2, propensity).astype(float)
+
+    opt = optax.rmsprop(learning_rate=0.1)
+    weighter = PermutationWeighter(num_epochs=10, batch_size=50, random_state=seed, optimizer=opt)
+    weighter.fit(X, A)
+    weights = weighter.predict(X, A)
+
+    smd_unweighted = standardized_mean_difference(X, A, jnp.ones_like(weights))
+    smd_weighted = standardized_mean_difference(X, A, weights)
+
+    max_smd_unw = float(jnp.abs(smd_unweighted).max())
+    max_smd_w = float(jnp.abs(smd_weighted).max())
+
+    return max_smd_w - max_smd_unw * 1.2
+
+
+@stochastic_test(expected=0, side="less", variance=0.1, atol=0.1, failure_prob=1e-4)
+def test_linear_discriminator_convergence(rng):
+    """Test that linear discriminator converges (loss decreases)."""
+    seed = int(rng.integers(0, 2**31))
+    rs = np.random.RandomState(seed)
+    X = rs.randn(100, 3)
+    A = (X[:, 0] + rs.randn(100) * 0.3 > 0).astype(float)
+
+    weighter = PermutationWeighter(
+        discriminator=LinearDiscriminator(),
+        num_epochs=2,
+        batch_size=25,
+        random_state=seed,
+        optimizer=optax.rmsprop(learning_rate=0.1),
+    )
+    weighter.fit(X, A)
+
+    assert weighter.history_ is not None
+    return float(weighter.history_["loss"][-1] - weighter.history_["loss"][0])
+
+
+@stochastic_test(expected=0, side="less", variance=0.1, atol=0.1, failure_prob=1e-4)
+def test_mlp_discriminator_convergence(rng):
+    """Test that MLP discriminator converges (loss decreases)."""
+    seed = int(rng.integers(0, 2**31))
+    rs = np.random.RandomState(seed)
+    X = rs.randn(100, 3)
+    A = (X[:, 0] + rs.randn(100) * 0.3 > 0).astype(float)
+
+    weighter = PermutationWeighter(
+        discriminator=MLPDiscriminator(hidden_dims=[32, 16]),
+        num_epochs=2,
+        batch_size=25,
+        random_state=seed,
+        optimizer=optax.rmsprop(learning_rate=0.1),
+    )
+    weighter.fit(X, A)
+
+    assert weighter.history_ is not None
+    return float(weighter.history_["loss"][-1] - weighter.history_["loss"][0])
+

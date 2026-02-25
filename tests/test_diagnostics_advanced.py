@@ -3,8 +3,9 @@
 import jax
 import jax.numpy as jnp
 import optax
+from pytest_stochastic import stochastic_test
 
-from stochpw import balance_report, calibration_curve, weight_statistics
+from stochpw import PermutationWeighter, balance_report, calibration_curve, weight_statistics
 
 
 class TestCalibrationCurve:
@@ -222,35 +223,6 @@ class TestBalanceReport:
 class TestIntegrationWithPermutationWeighter:
     """Test new diagnostics with PermutationWeighter."""
 
-    def test_balance_report_after_fit(self):
-        """Test balance report with actual permutation weighting."""
-        from stochpw import PermutationWeighter
-
-        # Create confounded data
-        key = jax.random.PRNGKey(42)
-        X = jax.random.normal(key, (200, 5))
-        # Treatment depends on X[0]
-        A = (X[:, 0] + jax.random.normal(key, (200,)) * 0.5 > 0).astype(float)
-
-        # Fit weighter
-        weighter = PermutationWeighter(
-            num_epochs=5,
-            batch_size=50,
-            random_state=42,
-            optimizer=optax.rmsprop(learning_rate=0.1),
-        )
-        weighter.fit(X, A)
-        weights = weighter.predict(X, A)
-
-        # Generate balance report
-        report_before = balance_report(X, A, jnp.ones(200))
-        report_after = balance_report(X, A, weights)
-
-        # Balance should improve
-        assert report_after["max_smd"] < report_before["max_smd"]
-        # ESS should be less than n (weights are not uniform)
-        assert report_after["ess"] < 200
-
     def test_calibration_with_discriminator(self):
         """Test calibration curve with discriminator predictions."""
         from stochpw import LinearDiscriminator
@@ -278,3 +250,52 @@ class TestIntegrationWithPermutationWeighter:
 
         assert bin_centers.shape == (5,)
         assert jnp.all(jnp.isfinite(true_freqs))
+
+
+@stochastic_test(expected=0, side="less", variance=0.5, atol=0.5, failure_prob=1e-4)
+def test_balance_report_smd_improves(rng):
+    """Test that permutation weighting improves max SMD in balance report."""
+    seed = int(rng.integers(0, 2**31))
+    key = jax.random.PRNGKey(seed)
+    k1, k2 = jax.random.split(key)
+
+    X = jax.random.normal(k1, (200, 5))
+    A = (X[:, 0] + jax.random.normal(k2, (200,)) * 0.5 > 0).astype(float)
+
+    weighter = PermutationWeighter(
+        num_epochs=5,
+        batch_size=50,
+        random_state=seed,
+        optimizer=optax.rmsprop(learning_rate=0.1),
+    )
+    weighter.fit(X, A)
+    weights = weighter.predict(X, A)
+
+    report_before = balance_report(X, A, jnp.ones(200))
+    report_after = balance_report(X, A, weights)
+
+    return float(report_after["max_smd"] - report_before["max_smd"])
+
+
+@stochastic_test(expected=0, side="less", variance=1000, atol=10, failure_prob=1e-4)
+def test_balance_report_ess_less_than_n(rng):
+    """Test that ESS is less than n after weighting (weights are not uniform)."""
+    seed = int(rng.integers(0, 2**31))
+    key = jax.random.PRNGKey(seed)
+    k1, k2 = jax.random.split(key)
+
+    X = jax.random.normal(k1, (200, 5))
+    A = (X[:, 0] + jax.random.normal(k2, (200,)) * 0.5 > 0).astype(float)
+
+    weighter = PermutationWeighter(
+        num_epochs=5,
+        batch_size=50,
+        random_state=seed,
+        optimizer=optax.rmsprop(learning_rate=0.1),
+    )
+    weighter.fit(X, A)
+    weights = weighter.predict(X, A)
+
+    report_after = balance_report(X, A, weights)
+
+    return float(report_after["ess"] - 200)

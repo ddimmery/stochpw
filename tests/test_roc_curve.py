@@ -2,6 +2,7 @@
 
 import jax.numpy as jnp
 import numpy as np
+from pytest_stochastic import stochastic_test
 
 from stochpw import PermutationWeighter, roc_curve
 
@@ -39,34 +40,6 @@ class TestROCCurve:
         # AUC should be close to 0.5 for random guessing
         auc = float(jnp.trapezoid(tpr, fpr))
         assert abs(auc - 0.5) < 0.1, f"Expected AUC ≈ 0.5 for random guessing, got {auc}"
-
-    def test_roc_curve_with_permutation_weighter(self):
-        """Test ROC curve with actual PermutationWeighter."""
-        np.random.seed(42)
-        X = np.random.randn(100, 3)
-        A = (X[:, 0] > 0).astype(float)
-
-        # Fit weighter
-        weighter = PermutationWeighter(num_epochs=20, batch_size=32, random_state=42)
-        weighter.fit(X, A)
-
-        # Get weights for observed and permuted
-        weights_obs = weighter.predict(X, A)
-        A_perm = A[np.random.permutation(len(A))]
-        weights_perm = weighter.predict(X, A_perm)
-
-        # Combine for ROC analysis
-        all_weights = jnp.concatenate([weights_obs, weights_perm])
-        all_labels = jnp.concatenate([jnp.zeros(len(weights_obs)), jnp.ones(len(weights_perm))])
-
-        fpr, tpr, thresholds = roc_curve(all_weights, all_labels)
-
-        # Check shapes
-        assert fpr.shape == tpr.shape == thresholds.shape
-
-        # AUC should be > 0.5 (better than random)
-        auc = float(jnp.trapezoid(tpr, fpr))
-        assert auc > 0.5, f"Expected AUC > 0.5 for trained discriminator, got {auc}"
 
     def test_roc_curve_eta_inference(self):
         """Test that eta is correctly inferred from weights."""
@@ -110,3 +83,27 @@ class TestROCCurve:
         assert fpr.shape[0] == 10
         assert jnp.all(jnp.isfinite(fpr))
         assert jnp.all(jnp.isfinite(tpr))
+
+
+@stochastic_test(expected=0, side="less", variance=0.01, atol=0.1, failure_prob=1e-4)
+def test_roc_auc_above_chance(rng):
+    """Test ROC AUC is above 0.5 for trained PermutationWeighter."""
+    seed = int(rng.integers(0, 2**31))
+    rs = np.random.RandomState(seed)
+    X = rs.randn(100, 3)
+    A = (X[:, 0] > 0).astype(float)
+
+    weighter = PermutationWeighter(num_epochs=20, batch_size=32, random_state=seed)
+    weighter.fit(X, A)
+
+    weights_obs = weighter.predict(X, A)
+    A_perm = A[rs.permutation(len(A))]
+    weights_perm = weighter.predict(X, A_perm)
+
+    all_weights = jnp.concatenate([weights_obs, weights_perm])
+    all_labels = jnp.concatenate([jnp.zeros(len(weights_obs)), jnp.ones(len(weights_perm))])
+
+    fpr, tpr, _ = roc_curve(all_weights, all_labels)
+
+    auc = float(jnp.trapezoid(tpr, fpr))
+    return 0.5 - auc

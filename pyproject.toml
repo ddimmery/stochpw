@@ -40,6 +40,7 @@ dev = [
     "jupytext>=1.17.3",
     "nbconvert>=7.16.6",
     "jupyter>=1.1.1",
+    "pytest-stochastic>=0.1.0",
 ]
 
 [build-system]

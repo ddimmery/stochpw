@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 import optax
+from pytest_stochastic import stochastic_test
 
 from stochpw.data import TrainingBatch, TrainingState
 from stochpw.models import LinearDiscriminator
@@ -294,38 +295,6 @@ class TestFitDiscriminator:
         assert "loss" in history
         assert len(history["loss"]) == 5
 
-    def test_loss_decreases(self):
-        """Test that loss generally decreases during training."""
-        # Create synthetic data with clear pattern
-        key = jax.random.PRNGKey(0)
-        X = jax.random.normal(key, (100, 5))
-        A = jax.random.bernoulli(jax.random.PRNGKey(1), 0.5, (100,)).astype(float).reshape(-1, 1)
-
-        d_a, d_x = A.shape[1], X.shape[1]
-        discriminator = LinearDiscriminator()
-
-        def init_fn(key):
-            return discriminator.init_params(key, d_a, d_x)
-
-        apply_fn = discriminator.apply
-
-        params = init_fn(jax.random.PRNGKey(2))
-        optimizer = optax.adam(1e-2)
-
-        final_params, history = fit_discriminator(
-            X=X,
-            A=A,
-            discriminator_fn=apply_fn,
-            init_params=params,
-            optimizer=optimizer,
-            num_epochs=50,
-            batch_size=32,
-            rng_key=jax.random.PRNGKey(3),
-        )
-
-        # Loss should decrease
-        assert history["loss"][-1] < history["loss"][0]
-
     def test_reproducibility_with_seed(self):
         """Test that same seed produces same results."""
         X = jnp.array([[1.0, 2.0], [3.0, 4.0]])
@@ -356,3 +325,31 @@ class TestFitDiscriminator:
         # Results should be identical
         assert jnp.allclose(final_params1["w_a"], final_params2["w_a"])
         assert jnp.allclose(history1["loss"][-1], history2["loss"][-1])
+
+
+@stochastic_test(expected=0, side="less", variance=0.1, atol=0.1, failure_prob=1e-4)
+def test_loss_decreases(rng):
+    """Test that loss generally decreases during training."""
+    seed = int(rng.integers(0, 2**31))
+    key = jax.random.PRNGKey(seed)
+    k1, k2, k3, k4 = jax.random.split(key, 4)
+
+    X = jax.random.normal(k1, (100, 5))
+    A = jax.random.bernoulli(k2, 0.5, (100,)).astype(float).reshape(-1, 1)
+
+    discriminator = LinearDiscriminator()
+    params = discriminator.init_params(k3, A.shape[1], X.shape[1])
+    optimizer = optax.adam(1e-2)
+
+    _, history = fit_discriminator(
+        X=X,
+        A=A,
+        discriminator_fn=discriminator.apply,
+        init_params=params,
+        optimizer=optimizer,
+        num_epochs=50,
+        batch_size=32,
+        rng_key=k4,
+    )
+
+    return float(history["loss"][-1] - history["loss"][0])
