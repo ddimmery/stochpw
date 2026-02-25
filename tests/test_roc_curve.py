@@ -114,12 +114,19 @@ class TestROCCurve:
 @stochastic_test(expected=1.0, atol=0.1, bounds=(0, 1), variance=0.01)
 def test_roc_curve_with_permutation_weighter(rng):
     """Trained discriminator AUC should be > 0.5 across random seeds."""
+    import optax
+
     seed = int(rng.integers(0, 2**31))
     np_rng = np.random.RandomState(seed)
-    X = np_rng.randn(100, 3)
-    A = (X[:, 0] > 0).astype(float)
+    X = np_rng.randn(200, 3)
+    A = (X[:, 0] + np_rng.randn(200) * 0.3 > 0).astype(float)
 
-    weighter = PermutationWeighter(num_epochs=20, batch_size=32, random_state=seed)
+    weighter = PermutationWeighter(
+        num_epochs=50,
+        batch_size=64,
+        random_state=seed,
+        optimizer=optax.rmsprop(learning_rate=0.1),
+    )
     weighter.fit(X, A)
 
     weights_obs = weighter.predict(X, A)
