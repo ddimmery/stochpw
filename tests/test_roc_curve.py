@@ -85,7 +85,7 @@ class TestROCCurve:
         assert jnp.all(jnp.isfinite(tpr))
 
 
-@stochastic_test(expected=0, side="less", variance=0.01, atol=0.1, failure_prob=1e-4)
+@stochastic_test(expected=0, side="less", bounds=(-1, 1), atol=0.1, failure_prob=1e-4)
 def test_roc_auc_above_chance(rng):
     """Test ROC AUC is above 0.5 for trained PermutationWeighter."""
     seed = int(rng.integers(0, 2**31))

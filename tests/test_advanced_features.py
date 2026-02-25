@@ -330,7 +330,7 @@ class TestCombinedFeatures:
         assert jnp.all(weights > 0)
 
 
-@stochastic_test(expected=0, side="less", variance=100, atol=10, failure_prob=1e-4)
+@stochastic_test(expected=0, side="less", bounds=(-100, 0), atol=5, failure_prob=1e-4)
 def test_early_stopping_stops_before_max_epochs(rng):
     """Early stopping should terminate before max epochs when improvement stops."""
     seed = int(rng.integers(0, 2**31))
@@ -350,7 +350,7 @@ def test_early_stopping_stops_before_max_epochs(rng):
     return float(len(weighter.history_["loss"]) - 100)
 
 
-@stochastic_test(expected=0, side="less", variance=100, atol=10, failure_prob=1e-4)
+@stochastic_test(expected=0, side="less", bounds=(-100, 0), atol=10, failure_prob=1e-4)
 def test_early_stopping_with_min_delta(rng):
     """Early stopping should respect min_delta parameter."""
     seed = int(rng.integers(0, 2**31))

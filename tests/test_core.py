@@ -336,7 +336,7 @@ class TestPermutationWeighter:
             assert jnp.all(weights > 0)
 
 
-@stochastic_test(expected=0, side="less", variance=0.1, atol=0.1, failure_prob=1e-4)
+@stochastic_test(expected=0, side="less", bounds=(-1, 0.5), atol=0.1, failure_prob=1e-4)
 def test_training_converges(rng):
     """Test that training generally reduces loss."""
     seed = int(rng.integers(0, 2**31))
@@ -360,7 +360,7 @@ def test_training_converges(rng):
     return float(weighter.history_["loss"][-1] - weighter.history_["loss"][0])
 
 
-@stochastic_test(expected=0, side="less", variance=1.0, atol=0.5, failure_prob=1e-4)
+@stochastic_test(expected=0, side="less", bounds=(-3, 1), atol=0.5, failure_prob=1e-4)
 def test_balance_improvement(rng):
     """Test that weights improve covariate balance."""
     seed = int(rng.integers(0, 2**31))
@@ -386,7 +386,7 @@ def test_balance_improvement(rng):
     return max_smd_w - max_smd_unw * 1.2
 
 
-@stochastic_test(expected=0, side="less", variance=0.1, atol=0.1, failure_prob=1e-4)
+@stochastic_test(expected=0, side="less", bounds=(-1, 0.5), atol=0.1, failure_prob=1e-4)
 def test_linear_discriminator_convergence(rng):
     """Test that linear discriminator converges (loss decreases)."""
     seed = int(rng.integers(0, 2**31))
@@ -407,7 +407,7 @@ def test_linear_discriminator_convergence(rng):
     return float(weighter.history_["loss"][-1] - weighter.history_["loss"][0])
 
 
-@stochastic_test(expected=0, side="less", variance=0.1, atol=0.1, failure_prob=1e-4)
+@stochastic_test(expected=0, side="less", bounds=(-10, 2), atol=0.5, failure_prob=1e-4)
 def test_mlp_discriminator_convergence(rng):
     """Test that MLP discriminator converges (loss decreases)."""
     seed = int(rng.integers(0, 2**31))

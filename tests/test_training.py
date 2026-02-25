@@ -327,7 +327,7 @@ class TestFitDiscriminator:
         assert jnp.allclose(history1["loss"][-1], history2["loss"][-1])
 
 
-@stochastic_test(expected=0, side="less", variance=0.1, atol=0.1, failure_prob=1e-4)
+@stochastic_test(expected=0, side="less", bounds=(-1, 0.5), atol=0.1, failure_prob=1e-4)
 def test_loss_decreases(rng):
     """Test that loss generally decreases during training."""
     seed = int(rng.integers(0, 2**31))

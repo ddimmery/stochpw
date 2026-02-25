@@ -252,7 +252,7 @@ class TestIntegrationWithPermutationWeighter:
         assert jnp.all(jnp.isfinite(true_freqs))
 
 
-@stochastic_test(expected=0, side="less", variance=0.5, atol=0.5, failure_prob=1e-4)
+@stochastic_test(expected=0, side="less", bounds=(-3, 1), atol=0.3, failure_prob=1e-4)
 def test_balance_report_smd_improves(rng):
     """Test that permutation weighting improves max SMD in balance report."""
     seed = int(rng.integers(0, 2**31))
@@ -277,7 +277,7 @@ def test_balance_report_smd_improves(rng):
     return float(report_after["max_smd"] - report_before["max_smd"])
 
 
-@stochastic_test(expected=0, side="less", variance=1000, atol=10, failure_prob=1e-4)
+@stochastic_test(expected=0, side="less", bounds=(-200, 0), atol=10, failure_prob=1e-4)
 def test_balance_report_ess_less_than_n(rng):
     """Test that ESS is less than n after weighting (weights are not uniform)."""
     seed = int(rng.integers(0, 2**31))
