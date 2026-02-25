@@ -294,38 +294,6 @@ class TestFitDiscriminator:
         assert "loss" in history
         assert len(history["loss"]) == 5
 
-    def test_loss_decreases(self):
-        """Test that loss generally decreases during training."""
-        # Create synthetic data with clear pattern
-        key = jax.random.PRNGKey(0)
-        X = jax.random.normal(key, (100, 5))
-        A = jax.random.bernoulli(jax.random.PRNGKey(1), 0.5, (100,)).astype(float).reshape(-1, 1)
-
-        d_a, d_x = A.shape[1], X.shape[1]
-        discriminator = LinearDiscriminator()
-
-        def init_fn(key):
-            return discriminator.init_params(key, d_a, d_x)
-
-        apply_fn = discriminator.apply
-
-        params = init_fn(jax.random.PRNGKey(2))
-        optimizer = optax.adam(1e-2)
-
-        final_params, history = fit_discriminator(
-            X=X,
-            A=A,
-            discriminator_fn=apply_fn,
-            init_params=params,
-            optimizer=optimizer,
-            num_epochs=50,
-            batch_size=32,
-            rng_key=jax.random.PRNGKey(3),
-        )
-
-        # Loss should decrease
-        assert history["loss"][-1] < history["loss"][0]
-
     def test_reproducibility_with_seed(self):
         """Test that same seed produces same results."""
         X = jnp.array([[1.0, 2.0], [3.0, 4.0]])

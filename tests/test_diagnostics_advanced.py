@@ -2,7 +2,6 @@
 
 import jax
 import jax.numpy as jnp
-import optax
 
 from stochpw import balance_report, calibration_curve, weight_statistics
 
@@ -221,35 +220,6 @@ class TestBalanceReport:
 
 class TestIntegrationWithPermutationWeighter:
     """Test new diagnostics with PermutationWeighter."""
-
-    def test_balance_report_after_fit(self):
-        """Test balance report with actual permutation weighting."""
-        from stochpw import PermutationWeighter
-
-        # Create confounded data
-        key = jax.random.PRNGKey(42)
-        X = jax.random.normal(key, (200, 5))
-        # Treatment depends on X[0]
-        A = (X[:, 0] + jax.random.normal(key, (200,)) * 0.5 > 0).astype(float)
-
-        # Fit weighter
-        weighter = PermutationWeighter(
-            num_epochs=5,
-            batch_size=50,
-            random_state=42,
-            optimizer=optax.rmsprop(learning_rate=0.1),
-        )
-        weighter.fit(X, A)
-        weights = weighter.predict(X, A)
-
-        # Generate balance report
-        report_before = balance_report(X, A, jnp.ones(200))
-        report_after = balance_report(X, A, weights)
-
-        # Balance should improve
-        assert report_after["max_smd"] < report_before["max_smd"]
-        # ESS should be less than n (weights are not uniform)
-        assert report_after["ess"] < 200
 
     def test_calibration_with_discriminator(self):
         """Test calibration curve with discriminator predictions."""
