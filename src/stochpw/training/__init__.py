@@ -2,7 +2,7 @@
 
 from .batch import create_training_batch
 from .early_stopping import BaseEarlyStopping, EarlyStopping, NoEarlyStopping
-from .loop import fit_discriminator, train_step
+from .loop import fit_discriminator, make_scan_epoch, make_train_step, train_step
 from .losses import BaseLoss, BrierLoss, ExponentialLoss, LogisticLoss
 from .permutation import BasePermuter, RandomPermuter
 from .regularization import BaseRegularizer, EntropyRegularizer, LpRegularizer, NoRegularizer
@@ -12,6 +12,8 @@ __all__ = [
     "create_training_batch",
     # Training loop
     "train_step",
+    "make_train_step",
+    "make_scan_epoch",
     "fit_discriminator",
     # Loss functions
     "BaseLoss",

@@ -172,6 +172,17 @@ uv run pytest -k "test_balance"        # Run tests matching pattern
 uv run pytest --cov=src/stochpw        # Run with coverage
 ```
 
+### Benchmarking the training loop
+```bash
+make bench                             # steps/sec & samples/sec for the grid
+PYTHONPATH=src uv run python benchmarks/bench_training.py --full     # + large-n sweep
+PYTHONPATH=src uv run python benchmarks/bench_training.py --profile  # + cProfile/trace
+```
+Results and methodology live in `benchmarks/RESULTS.md`. The training loop is
+jitted and `lax.scan`-ed (`make_train_step` / `make_scan_epoch` in
+`training/loop.py`); the compiled epoch is built once per `fit`, so changing
+`batch_size` (or `n`) triggers exactly one recompile — expected and amortized.
+
 ### Building documentation
 ```bash
 uv run mkdocs serve                    # Local preview at http://127.0.0.1:8000

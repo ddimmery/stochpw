@@ -60,6 +60,12 @@ coverage: ## Run tests with coverage report
 coverage-open: coverage ## Generate coverage report and open in browser
 	open htmlcov/index.html || xdg-open htmlcov/index.html
 
+##@ Benchmarking
+
+.PHONY: bench
+bench: ## Run the training-loop throughput benchmark (steps/sec, samples/sec)
+	PYTHONPATH=$(PYTHONPATH) uv run python benchmarks/bench_training.py
+
 ##@ Quality Assurance
 
 .PHONY: check

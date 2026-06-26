@@ -145,3 +145,42 @@ Validation for any of the above: re-run `benchmarks/bench_training.py` and check
 that end-to-end steps/sec moves toward the `jitted` column of §2, and confirm
 weights/loss are numerically unchanged vs. the current implementation (fixed
 `random_state`).
+
+---
+
+## 6. After implementation — jitted step + `lax.scan` inner loop
+
+Recommendations 1–4 are now **implemented** (`src/stochpw/training/loop.py`):
+`make_train_step` jits the single step (static observed-row slice, loss kept
+on-device), and `make_scan_epoch` folds batch construction + the inner batch loop
+into one `jax.jit`+`jax.lax.scan` epoch, syncing the loss once per epoch. The
+epoch loop stays in Python (early stopping / history). Numerics are unchanged —
+verified by an equivalence test (`tests/test_training.py::TestJitEquivalence`,
+`rtol=1e-5, atol=1e-6`) against a kept copy of the pre-jit loop, across
+linear/MLP × {logistic, exponential, brier} × {none, Lp, entropy}.
+
+End-to-end throughput (`PermutationWeighter.fit`, 20 epochs, steady-state),
+same grid, same machine (JAX 0.8.0, CPU):
+
+| case (n / d_x / batch / disc)            | before steps/s | after steps/s | speedup |
+|------------------------------------------|---------------:|--------------:|--------:|
+| n=250   d_x=5  bs=62   linear            |          73.7  |        122.8  |  1.7×   |
+| n=250   d_x=5  bs=62   mlp               |          48.1  |        121.5  |  2.5×   |
+| n=1000  d_x=5  bs=256  linear            |          70.3  |        118.2  |  1.7×   |
+| n=1000  d_x=5  bs=256  mlp               |          45.9  |         86.8  |  1.9×   |
+| n=10000 d_x=5  bs=256  linear            |          68.5  |       1014.5  | 14.8×   |
+| n=10000 d_x=5  bs=256  mlp               |          44.5  |        840.8  | 18.9×   |
+| n=1000  d_x=50 bs=256  linear            |          61.7  |        115.2  |  1.9×   |
+| n=1000  d_x=5  bs=1000 linear            |          60.4  |         46.1  |  0.8×   |
+
+The gain scales with **batches per epoch**: at n=10000/bs=256 (≈39 batches/epoch)
+the scan amortizes Python/dispatch overhead across many steps inside one compiled
+loop, giving ~15–19×. Smaller grids (few batches/epoch) see ~2× — bounded by the
+per-epoch Python overhead (shuffle resplit, host sync, early-stopping bookkeeping)
+that intentionally stays outside the compiled region.
+
+The full-batch case (bs=1000 ⇒ **1 batch/epoch**, only 20 steps total) is slightly
+slower (0.8×): with a single step per epoch there is no inner loop to amortize, so
+the extra per-epoch jitted-call dispatch + one-compile-per-fit is not repaid. This
+is the expected degenerate case and is dominated by fixed per-epoch costs, not
+per-step work.
