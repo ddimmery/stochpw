@@ -43,6 +43,8 @@ from .training import (
     RandomPermuter,
     create_training_batch,
     fit_discriminator,
+    make_scan_epoch,
+    make_train_step,
     train_step,
 )
 from .types import (
@@ -67,6 +69,8 @@ __all__ = [
     # Training utilities (for integration)
     "create_training_batch",
     "train_step",
+    "make_train_step",
+    "make_scan_epoch",
     "fit_discriminator",
     # Loss functions
     "BaseLoss",

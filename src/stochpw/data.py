@@ -2,14 +2,21 @@
 
 from dataclasses import dataclass
 
+import jax
 from jax import Array
 
 from .types import OptimizerState, PyTree
 
 
+@jax.tree_util.register_dataclass
 @dataclass(frozen=True)
 class TrainingBatch:
-    """A batch of data for discriminator training."""
+    """A batch of data for discriminator training.
+
+    Registered as a JAX pytree so it can be passed directly across ``jax.jit``
+    boundaries (e.g. into the compiled training step) without being flattened to
+    a tuple by callers. All four fields are array leaves.
+    """
 
     X: Array  # Covariates, shape (2 * batch_size, d_x)
     A: Array  # Treatments, shape (2 * batch_size, d_a)
